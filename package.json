@@ -12,7 +12,8 @@
     "test:watch": "vitest",
     "check": "npm run typecheck && npm run lint && npm run test",
     "preview": "vite preview",
-    "icons": "pwa-assets-generator"
+    "icons": "pwa-assets-generator",
+    "catalog": "node scripts/build-catalog.ts"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.117.2",

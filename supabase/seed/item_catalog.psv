@@ -1,0 +1,233 @@
+# PRABAS starter item catalogue. One item per line; columns separated by "|",
+# aliases separated by ",". After editing, run `npm run catalog` and commit.
+#
+# unit: how it's stored (g, ml, piece, bunch, packet). display_unit: how it's shown
+# (kg for g items, l for ml items, or the same as unit). Stored units can't change
+# once a household has stock events, so choose carefully.
+# shelf_life_days: empty for things that keep. is_staple: "yes" or empty.
+# low_threshold, piece_weight_g, step: in the stored unit (g, ml, or a count).
+# opened_shelf_life_days: set for items tracked as whole and opened (coconut).
+#
+key|name_ta|name_en|category|unit|display_unit|shelf_life_days|is_staple|low_threshold|piece_weight_g|opened_shelf_life_days|step|aliases
+
+# ---- Vegetables ----------------------------------------------------------------
+vendakkai|வெண்டைக்காய்|Ladies finger|vegetable|g|kg|4|||||250|vendakkai, vendakai, vendaikkai, ladies finger, lady finger, okra, bhindi, L.Finger, Ladys Finger
+kathirikkai|கத்தரிக்காய்|Brinjal|vegetable|g|kg|5|||60||250|kathirikkai, kathirikai, kathrikai, brinjal, eggplant, aubergine, baingan, Brinjal Small, Brinjal Big
+thakkali|தக்காளி|Tomato|vegetable|g|kg|6|yes|500|90||250|thakkali, takkali, tomato, tamatar, Tomato Local, Tomato Hybrid, Tmt
+periya_vengayam|பெரிய வெங்காயம்|Onion|vegetable|g|kg|30|yes|1000|150||500|periya vengayam, vengayam, big onion, onion, Bellary onion, pyaz, Onion Big
+chinna_vengayam|சின்ன வெங்காயம்|Small onion|vegetable|g|kg|21|yes|250|||250|chinna vengayam, sambar vengayam, small onion, sambar onion, shallots, shallot, Sml Onion, Onion Small
+urulaikizhangu|உருளைக்கிழங்கு|Potato|vegetable|g|kg|21||500|150||500|urulaikizhangu, urulai kizhangu, urulai, potato, aloo, alu
+carrot|கேரட்|Carrot|vegetable|g|kg|10|||80||250|carrot, karat, gajar
+beans|பீன்ஸ்|Beans|vegetable|g|kg|5|||||250|beans, french beans, green beans, Beans Ooty
+avarakkai|அவரைக்காய்|Broad beans|vegetable|g|kg|5|||||250|avarakkai, avaraikkai, avarai, broad beans, flat beans, sem, papdi
+kothavarangai|கொத்தவரங்காய்|Cluster beans|vegetable|g|kg|5|||||250|kothavarangai, kothavaranga, cluster beans, guar, gawar
+karamani_kai|காராமணிக்காய்|Long beans|vegetable|g|kg|4|||||250|karamani kai, thatta payaru kai, long beans, yard long beans, lobia beans
+murungakkai|முருங்கைக்காய்|Drumstick|vegetable|piece|piece|5|||70||1|murungakkai, murungaikai, murunga, drumstick, moringa, sahjan, Drum Stick
+pudalangai|புடலங்காய்|Snake gourd|vegetable|g|kg|5|||||250|pudalangai, pudalankai, snake gourd, chichinda
+peerkangai|பீர்க்கங்காய்|Ridge gourd|vegetable|g|kg|4|||||250|peerkangai, peerkankai, ridge gourd, turai, tori
+suraikkai|சுரைக்காய்|Bottle gourd|vegetable|g|kg|7|||||500|suraikkai, suraikai, bottle gourd, lauki, doodhi
+pavakkai|பாகற்காய்|Bitter gourd|vegetable|g|kg|5|||||250|pavakkai, paavakkai, pagarkai, bitter gourd, karela
+vellai_poosani|வெள்ளைப் பூசணி|Ash gourd|vegetable|g|kg|14|||||500|vellai poosani, poosanikai, ash gourd, white pumpkin, winter melon, petha
+parangikai|பரங்கிக்காய்|Pumpkin|vegetable|g|kg|14|||||500|parangikai, manja poosani, pumpkin, yellow pumpkin, kaddu
+chow_chow|சௌசௌ|Chow chow|vegetable|g|kg|10|||250||250|chow chow, sow sow, chayote, bangalore kathirikai
+muttaikose|முட்டைக்கோஸ்|Cabbage|vegetable|g|kg|10|||800||500|muttaikose, muttai kosu, cabbage, patta gobhi
+cauliflower|காலிஃபிளவர்|Cauliflower|vegetable|g|kg|5|||600||500|cauliflower, gobi, phool gobhi, Cauli
+broccoli|ப்ரோக்கோலி|Broccoli|vegetable|g|kg|5|||300||250|broccoli
+beetroot|பீட்ரூட்|Beetroot|vegetable|g|kg|14|||150||250|beetroot, beet, chukandar
+mullangi|முள்ளங்கி|Radish|vegetable|g|kg|7|||200||250|mullangi, radish, mooli
+nool_kol|நூல்கோல்|Knol khol|vegetable|g|kg|7|||200||250|nool kol, nookal, knol khol, kohlrabi
+vazhakkai|வாழைக்காய்|Raw banana|vegetable|piece|piece|5|||200||1|vazhakkai, valakkai, vazhaikai, raw banana, plantain, kacha kela
+vazhaipoo|வாழைப்பூ|Banana flower|vegetable|piece|piece|3|||||1|vazhaipoo, valaipoo, banana flower, banana blossom
+vazhaithandu|வாழைத்தண்டு|Banana stem|vegetable|piece|piece|5|||||1|vazhaithandu, valaithandu, banana stem
+senaikizhangu|சேனைக்கிழங்கு|Elephant yam|vegetable|g|kg|30|||||500|senaikizhangu, senai kizhangu, senai, elephant foot yam, yam, suran, jimikand
+seppankizhangu|சேப்பங்கிழங்கு|Colocasia|vegetable|g|kg|10|||||250|seppankizhangu, seppankilangu, arbi, colocasia, taro
+sakkaravalli|சர்க்கரைவள்ளிக்கிழங்கு|Sweet potato|vegetable|g|kg|14|||||500|sakkaravalli kizhangu, sakkaravalli, sweet potato, shakarkand
+maravalli|மரவள்ளிக்கிழங்கு|Tapioca|vegetable|g|kg|5|||||500|maravalli kizhangu, maravalli, tapioca, cassava, kappa
+kovakkai|கோவைக்காய்|Ivy gourd|vegetable|g|kg|5|||||250|kovakkai, kovaikkai, ivy gourd, tindora, kundru
+kudai_milagai|குடைமிளகாய்|Capsicum|vegetable|g|kg|7|||150||250|kudai milagai, capsicum, bell pepper, shimla mirch
+pachai_milagai|பச்சை மிளகாய்|Green chilli|vegetable|g|g|7|yes|50|||50|pachai milagai, green chilli, green chili, hari mirch, G.Chilli, Chilli Green
+inji|இஞ்சி|Ginger|vegetable|g|g|21|yes|50|||50|inji, ginger, adrak
+poondu|பூண்டு|Garlic|vegetable|g|g|30||100|||100|poondu, vellai poondu, garlic, lahsun
+elumichai|எலுமிச்சை|Lemon|vegetable|piece|piece|14||2|50||1|elumichai, elumichampazham, lemon, lime, nimbu
+mangai|மாங்காய்|Raw mango|vegetable|piece|piece|7|||250||1|maangai, mangai, raw mango, kairi
+vellarikkai|வெள்ளரிக்காய்|Cucumber|vegetable|g|kg|7|||200||250|vellarikkai, vellarikai, cucumber, kheera
+kaalan|காளான்|Mushroom|vegetable|packet|packet|3|||||1|kaalan, kalan, mushroom, button mushroom
+baby_corn|பேபி கார்ன்|Baby corn|vegetable|packet|packet|4|||||1|baby corn
+makka_cholam|மக்காச்சோளம்|Sweet corn|vegetable|piece|piece|4|||||1|makka cholam, makkacholam, sweet corn, corn, bhutta
+pachai_pattani|பச்சைப் பட்டாணி|Green peas|vegetable|g|kg|4|||||250|pachai pattani, pattani, green peas, peas, matar
+mochai|மொச்சை|Field beans|vegetable|g|kg|4|||||250|mochai, mochai kottai, field beans, lima beans
+sundakkai|சுண்டைக்காய்|Turkey berry|vegetable|g|g|5|||||100|sundakkai, sundaikkai, turkey berry
+vengaya_thaal|வெங்காயத்தாள்|Spring onion|greens|bunch|bunch|4|||||1|vengaya thaal, spring onion, green onion, scallion
+
+# ---- Greens ----------------------------------------------------------------------
+kothamalli|கொத்தமல்லி|Coriander leaves|greens|bunch|bunch|4|yes||||1|kothamalli, kothamalli thazhai, malli ilai, coriander, coriander leaves, cilantro, dhania, Coriander Leaves
+karuveppilai|கறிவேப்பிலை|Curry leaves|greens|bunch|bunch|7|yes||||1|karuveppilai, kariveppilai, karivepilai, curry leaves, curry leaf, kadi patta
+pudhina|புதினா|Mint|greens|bunch|bunch|4|||||1|pudhina, pudina, mint, mint leaves
+mulai_keerai|முளைக்கீரை|Tender amaranth|greens|bunch|bunch|2|||||1|mulai keerai, mulaikeerai, tender amaranth, amaranth, chaulai
+arai_keerai|அரைக்கீரை|Amaranth leaves|greens|bunch|bunch|2|||||1|arai keerai, araikeerai, amaranth leaves
+siru_keerai|சிறுகீரை|Small amaranth|greens|bunch|bunch|2|||||1|siru keerai, sirukeerai, small amaranth
+thandu_keerai|தண்டுக்கீரை|Amaranth stem|greens|bunch|bunch|3|||||1|thandu keerai, thandukeerai, amaranth stem
+pasalai_keerai|பசலைக்கீரை|Malabar spinach|greens|bunch|bunch|2|||||1|pasalai keerai, pasalai, malabar spinach, basella
+palak|பாலக் கீரை|Spinach|greens|bunch|bunch|3|||||1|palak, palak keerai, paalak, spinach
+murungai_keerai|முருங்கைக்கீரை|Drumstick leaves|greens|bunch|bunch|2|||||1|murungai keerai, murungai ilai, murungaikeerai, drumstick leaves, moringa leaves
+ponnanganni|பொன்னாங்கண்ணிக் கீரை|Ponnanganni greens|greens|bunch|bunch|2|||||1|ponnanganni, ponnanganni keerai, dwarf copperleaf
+manathakkali|மணத்தக்காளிக் கீரை|Manathakkali greens|greens|bunch|bunch|2|||||1|manathakkali, manathakkali keerai, black nightshade, sukkutti keerai
+agathi_keerai|அகத்திக் கீரை|Agathi greens|greens|bunch|bunch|2|||||1|agathi keerai, agathi, agathikeerai, sesbania leaves
+vendhaya_keerai|வெந்தயக் கீரை|Fenugreek leaves|greens|bunch|bunch|3|||||1|vendhaya keerai, vendhayakeerai, methi, methi leaves, fenugreek leaves
+mudakathan|முடக்கத்தான் கீரை|Mudakathan greens|greens|bunch|bunch|2|||||1|mudakathan, mudakathan keerai, mudakkathan, balloon vine
+vallarai|வல்லாரைக் கீரை|Vallarai greens|greens|bunch|bunch|2|||||1|vallarai, vallarai keerai, brahmi, gotu kola, pennywort
+pulicha_keerai|புளிச்சக் கீரை|Gongura|greens|bunch|bunch|3|||||1|pulicha keerai, pulichakeerai, gongura, sorrel leaves
+thuthuvalai|தூதுவளை|Thuthuvalai|greens|bunch|bunch|3|||||1|thuthuvalai, thoothuvalai, thuthuvalai keerai
+sathakuppai|சதகுப்பை|Dill leaves|greens|bunch|bunch|3|||||1|sathakuppai, dill, dill leaves, shepu
+
+# ---- Fruit ---------------------------------------------------------------------------
+vazhaipazham|வாழைப்பழம்|Banana|fruit|piece|piece|4|||100||1|vazhaipazham, valaipalam, vazhaipalam, banana, kela, poovan, nendran, rasthali
+apple|ஆப்பிள்|Apple|fruit|piece|piece|14|||180||1|apple, seb, aapil
+orange|ஆரஞ்சு|Orange|fruit|piece|piece|10|||180||1|orange, kamala orange, santra
+sathukudi|சாத்துக்குடி|Sweet lime|fruit|piece|piece|10|||180||1|sathukudi, sathukkudi, sweet lime, mosambi
+mathulai|மாதுளை|Pomegranate|fruit|piece|piece|14|||250||1|mathulai, maadhulai, pomegranate, anar
+koyya|கொய்யா|Guava|fruit|piece|piece|5|||150||1|koyya, koyyapazham, guava, amrood
+pappali|பப்பாளி|Papaya|fruit|g|kg|4|||||500|pappali, pappaali, papaya, papita
+mampazham|மாம்பழம்|Mango|fruit|piece|piece|5|||250||1|mampazham, maampalam, mango, aam
+thiratchai|திராட்சை|Grapes|fruit|g|kg|5|||||250|thiratchai, dhraatchai, grapes, angoor
+tharbusani|தர்பூசணி|Watermelon|fruit|g|kg|7|||||1000|tharbusani, tharpoosani, watermelon, tarbooz
+annasi|அன்னாசி|Pineapple|fruit|piece|piece|5|||||1|annasi, annasi pazham, pineapple, ananas
+sapota|சப்போட்டா|Sapota|fruit|piece|piece|4|||80||1|sapota, sapotta, chikoo, chiku
+palapazham|பலாப்பழம்|Jackfruit|fruit|g|kg|3|||||250|palapazham, palaapalam, jackfruit, kathal
+nellikai|நெல்லிக்காய்|Gooseberry|fruit|g|g|10|||||100|nellikai, nellikkai, gooseberry, amla
+pear|பேரிக்காய்|Pear|fruit|piece|piece|7|||150||1|berikai, perikkai, pear, nashpati
+ilaneer|இளநீர்|Tender coconut|fruit|piece|piece|5|||||1|ilaneer, elaneer, ilaneer kai, tender coconut, nariyal pani
+
+# ---- Meat ------------------------------------------------------------------------------
+kozhi|கோழிக்கறி|Chicken|meat|g|kg|2|||||250|kozhi, kozhi kari, kozhikari, chicken, murgi, Chicken Curry Cut, Chicken With Skin, Chicken Skinless
+kozhi_boneless|கோழிக்கறி (எலும்பில்லாதது)|Chicken boneless|meat|g|kg|2|||||250|chicken boneless, boneless chicken, boneless, kozhi boneless
+nattu_kozhi|நாட்டுக்கோழி|Country chicken|meat|g|kg|2|||||250|nattu kozhi, naatu kozhi, country chicken, desi chicken
+aattukari|ஆட்டுக்கறி|Mutton|meat|g|kg|2|||||250|aattu kari, aattukari, kari, mutton, goat meat, lamb
+kothu_kari|கொத்துக்கறி|Mutton mince|meat|g|kg|2|||||250|kothu kari, kothukari, kheema, keema, mince
+eeral|ஈரல்|Liver|meat|g|kg|1|||||250|eeral, liver, kaleji, mutton liver, chicken liver
+kaadai|காடை|Quail|meat|piece|piece|2|||||1|kaadai, kadai, quail, bater
+
+# ---- Fish ---------------------------------------------------------------------------
+vanjiram|வஞ்சிரம்|Seer fish|fish|g|kg|1|||||250|vanjiram, vanjaram, seer fish, king fish, surmai, neymeen
+sankara|சங்கரா|Red snapper|fish|g|kg|1|||||250|sankara, sankara meen, red snapper
+vavval|வவ்வால்|Pomfret|fish|g|kg|1|||||250|vavval, vaaval, pomfret, white pomfret, paplet
+mathi|மத்தி மீன்|Sardine|fish|g|kg|1|||||250|mathi, mathi meen, chaala, chalai, sardine
+ayila|அயிலை மீன்|Mackerel|fish|g|kg|1|||||250|ayila, ayila meen, kanangeluthi, mackerel, bangda
+nethili|நெத்திலி|Anchovy|fish|g|kg|1|||||250|nethili, nethili meen, anchovy, kozhuva
+paarai|பாறை மீன்|Trevally|fish|g|kg|1|||||250|paarai, parai meen, trevally
+koduva|கொடுவா மீன்|Barramundi|fish|g|kg|1|||||250|koduva, koduva meen, barramundi, sea bass, bhetki
+soorai|சூரை மீன்|Tuna|fish|g|kg|1|||||250|soorai, choorai, tuna
+rohu|ரோகு மீன்|Rohu|fish|g|kg|1|||||250|rohu, rohu fish, roghu
+eral|இறால்|Prawns|fish|g|kg|1|||||250|eral, iral, yeral, prawns, prawn, shrimp, jhinga
+nandu|நண்டு|Crab|fish|g|kg|1|||||250|nandu, crab
+kanava|கணவாய்|Squid|fish|g|kg|1|||||250|kanava, kanavai, squid, calamari
+karuvadu|கருவாடு|Dried fish|fish|g|g|60|||||100|karuvadu, karuvaadu, dry fish, dried fish
+
+# ---- Eggs ----------------------------------------------------------------------------
+muttai|முட்டை|Egg|egg|piece|piece|14|||55||1|muttai, egg, eggs, anda, kozhi muttai
+nattu_muttai|நாட்டுக்கோழி முட்டை|Country egg|egg|piece|piece|14|||50||1|nattu kozhi muttai, nattu muttai, country egg, desi egg
+kaadai_muttai|காடை முட்டை|Quail egg|egg|piece|piece|10|||12||1|kaadai muttai, quail egg, quail eggs
+
+# ---- Dairy ---------------------------------------------------------------------------
+paal|பால்|Milk|dairy|ml|l|2|yes|500|||500|paal, milk, doodh, Aavin, toned milk, cow milk
+thayir|தயிர்|Curd|dairy|g|g|4|yes|200|||200|thayir, thayiru, curd, yogurt, yoghurt, dahi
+mor|மோர்|Buttermilk|dairy|ml|ml|2|||||200|mor, moru, buttermilk, chaas
+vennai|வெண்ணெய்|Butter|dairy|g|g|30|||||100|vennai, butter, Amul butter
+nei|நெய்|Ghee|dairy|g|g||||||100|nei, ghee
+paneer|பனீர்|Paneer|dairy|g|g|5|||||200|paneer, cottage cheese
+cheese|சீஸ்|Cheese|dairy|g|g|30|||||100|cheese
+
+# ---- Grains and flours ---------------------------------------------------------------
+pacharisi|பச்சரிசி|Raw rice|grain|g|kg||yes|2000|||1000|pacharisi, pachai arisi, arisi, raw rice, rice, ponni, ponni rice, sona masoori, chawal
+puzhungal_arisi|புழுங்கல் அரிசி|Boiled rice|grain|g|kg||||||1000|puzhungal arisi, pulungal arisi, boiled rice, parboiled rice
+idli_arisi|இட்லி அரிசி|Idli rice|grain|g|kg||||||1000|idli arisi, idly arisi, idli rice, idly rice
+basmati|பாஸ்மதி அரிசி|Basmati rice|grain|g|kg||||||1000|basmati, basmati rice, basmathi
+seeraga_samba|சீரகச் சம்பா அரிசி|Seeraga samba rice|grain|g|kg||||||1000|seeraga samba, jeeraga samba, jeera samba, biryani rice
+kaikuthal_arisi|கைக்குத்தல் அரிசி|Hand-pounded rice|grain|g|kg||||||1000|kaikuthal arisi, kai kuthal arisi, hand pounded rice, brown rice
+ragi|கேழ்வரகு|Ragi|grain|g|kg||||||500|kezhvaragu, kelvaragu, ragi, finger millet, nachni
+ragi_mavu|கேழ்வரகு மாவு|Ragi flour|grain|g|kg||||||500|ragi mavu, ragi maavu, ragi flour, kezhvaragu maavu
+kambu|கம்பு|Pearl millet|grain|g|kg||||||500|kambu, bajra, pearl millet, kambu arisi
+thinai|தினை|Foxtail millet|grain|g|kg||||||500|thinai, foxtail millet, kangni
+varagu|வரகு|Kodo millet|grain|g|kg||||||500|varagu, varagu arisi, kodo millet
+saamai|சாமை|Little millet|grain|g|kg||||||500|saamai, samai, little millet
+kuthiraivali|குதிரைவாலி|Barnyard millet|grain|g|kg||||||500|kuthiraivali, kuthirai vali, barnyard millet, sanwa
+cholam|சோளம்|Sorghum|grain|g|kg||||||500|cholam, vellai cholam, jowar, sorghum
+godhumai_mavu|கோதுமை மாவு|Wheat flour|grain|g|kg||||||1000|godhumai maavu, gothumai mavu, atta, wheat flour, chapati flour, Aashirvaad
+maida|மைதா|Maida|grain|g|kg||||||500|maida, all purpose flour, refined flour
+ravai|ரவை|Rava|grain|g|kg||||||500|ravai, rava, sooji, suji, semolina, bombay rava
+godhumai_ravai|கோதுமை ரவை|Broken wheat|grain|g|kg||||||500|godhumai ravai, samba ravai, broken wheat, dalia, wheat rava
+arisi_mavu|அரிசி மாவு|Rice flour|grain|g|kg||||||500|arisi maavu, arisi mavu, rice flour
+aval|அவல்|Poha|grain|g|kg||||||500|aval, poha, beaten rice, flattened rice
+semiya|சேமியா|Vermicelli|grain|packet|packet||||||1|semiya, semiya packet, vermicelli, seviyan
+javvarisi|ஜவ்வரிசி|Sago|grain|g|kg||||||250|javvarisi, jawarisi, sago, sabudana
+oats|ஓட்ஸ்|Oats|grain|g|kg||||||500|oats, rolled oats
+kadalai_mavu|கடலை மாவு|Gram flour|grain|g|kg||||||500|kadalai maavu, kadalai mavu, besan, gram flour
+bread|ரொட்டி|Bread|grain|packet|packet|4|||||1|bread, rotti, bread packet, sandwich bread
+
+# ---- Dals and legumes ----------------------------------------------------------------
+thuvaram_paruppu|துவரம் பருப்பு|Toor dal|dal|g|kg||yes|500|||500|thuvaram paruppu, thuvaram parupu, paruppu, toor dal, tur dal, toor dhal, arhar, T.Dal
+ulutham_paruppu|உளுத்தம் பருப்பு|Urad dal|dal|g|kg||yes|500|||500|ulutham paruppu, uluthamparuppu, ulundu, urad dal, urad dhal, white urad, U.Dal
+muzhu_ulundu|முழு உளுந்து|Whole black urad|dal|g|kg||||||500|muzhu ulundu, karuppu ulundu, whole urad, black urad, black gram
+kadalai_paruppu|கடலைப் பருப்பு|Chana dal|dal|g|kg||||||500|kadalai paruppu, kadala paruppu, chana dal, bengal gram dal, C.Dal
+pasi_paruppu|பாசிப் பருப்பு|Moong dal|dal|g|kg||||||500|pasi paruppu, paasi paruppu, pasiparuppu, moong dal, yellow moong, mung dal, M.Dal
+pachai_payaru|பச்சைப் பயறு|Green gram|dal|g|kg||||||500|pachai payaru, pachai payiru, green gram, whole moong, mung beans
+vellai_kondakadalai|வெள்ளைக் கொண்டைக்கடலை|White chickpeas|dal|g|kg||||||500|vellai kondakadalai, kondakadalai, kabuli chana, chickpeas, chole, channa
+karuppu_kondakadalai|கருப்புக் கொண்டைக்கடலை|Black chickpeas|dal|g|kg||||||500|karuppu kondakadalai, kondai kadalai, kala chana, black chana, brown chickpeas
+karamani|காராமணி|Black-eyed peas|dal|g|kg||||||500|karamani, thatta payaru, black eyed peas, lobia, cowpea
+kollu|கொள்ளு|Horse gram|dal|g|kg||||||500|kollu, horse gram, kulthi
+rajma|ராஜ்மா|Kidney beans|dal|g|kg||||||500|rajma, kidney beans, red beans
+masoor|மசூர் பருப்பு|Red lentils|dal|g|kg||||||500|masoor dal, masoor paruppu, red lentils
+pottukadalai|பொட்டுக்கடலை|Roasted gram|dal|g|kg||||||250|pottukadalai, pottu kadalai, udacha kadalai, roasted gram, fried gram, chutney dal
+verkadalai|வேர்க்கடலை|Peanuts|dal|g|kg||||||250|verkadalai, nilakadalai, kadalai, groundnut, peanuts, moongphali
+kaindha_pattani|காய்ந்த பட்டாணி|Dried peas|dal|g|kg||||||500|kaindha pattani, dried peas, white peas, safed matar, green peas dry
+soya|சோயா உருண்டை|Soya chunks|dal|g|g||||||200|soya, soya chunks, meal maker
+
+# ---- Spices and seasonings -----------------------------------------------------------
+kadugu|கடுகு|Mustard seeds|spice|g|g||||||100|kadugu, mustard, mustard seeds, rai, sarson
+seeragam|சீரகம்|Cumin|spice|g|g||||||100|seeragam, jeeragam, cumin, jeera
+milagu|மிளகு|Black pepper|spice|g|g||||||100|milagu, pepper, black pepper, kali mirch
+vendhayam|வெந்தயம்|Fenugreek seeds|spice|g|g||||||100|vendhayam, venthayam, fenugreek, methi seeds
+sombu|சோம்பு|Fennel seeds|spice|g|g||||||100|sombu, perunjeeragam, fennel, saunf
+manjal|மஞ்சள் தூள்|Turmeric powder|spice|g|g||||||100|manjal thool, manjal podi, manjal, turmeric, haldi
+milagai_thool|மிளகாய்த் தூள்|Chilli powder|spice|g|g||||||100|milagai thool, milagai podi, chilli powder, red chilli powder, lal mirch
+malli_thool|மல்லித் தூள்|Coriander powder|spice|g|g||||||100|malli thool, dhaniya thool, coriander powder, dhania powder
+malli|மல்லி|Coriander seeds|spice|g|g||||||100|malli, dhaniya, coriander seeds, kothamalli vidhai
+vara_milagai|காய்ந்த மிளகாய்|Dry red chilli|spice|g|g||||||100|kaintha milagai, vara milagai, varamilagai, gundu milagai, red chilli, dry chilli, sukhi lal mirch
+perungayam|பெருங்காயம்|Asafoetida|spice|g|g||||||50|perungayam, perungaayam, hing, asafoetida
+puli|புளி|Tamarind|spice|g|g||||||250|puli, tamarind, imli
+uppu|உப்பு|Salt|spice|g|kg||||||1000|uppu, salt, namak, kal uppu, crystal salt, thool uppu
+pattai|பட்டை|Cinnamon|spice|g|g||||||50|pattai, lavanga pattai, cinnamon, dalchini
+kirambu|கிராம்பு|Cloves|spice|g|g||||||50|kirambu, lavangam, cloves, laung
+elakkai|ஏலக்காய்|Cardamom|spice|g|g||||||50|elakkai, yelakkai, cardamom, elaichi
+biryani_ilai|பிரியாணி இலை|Bay leaf|spice|g|g||||||50|biryani ilai, bay leaf, tej patta, brinji ilai
+annachi_poo|அன்னாசிப்பூ|Star anise|spice|g|g||||||50|annachi poo, anasi poo, star anise, chakri phool
+kasa_kasa|கசகசா|Poppy seeds|spice|g|g||||||50|kasa kasa, kasakasa, poppy seeds, khus khus
+ellu|எள்|Sesame seeds|spice|g|g||||||100|ellu, sesame, sesame seeds, til, karuppu ellu, vellai ellu
+garam_masala|கரம் மசாலா|Garam masala|spice|g|g||||||50|garam masala
+sambar_podi|சாம்பார் பொடி|Sambar powder|spice|g|g||||||100|sambar podi, sambar thool, sambar powder
+rasam_podi|ரசப் பொடி|Rasam powder|spice|g|g||||||100|rasam podi, rasa podi, rasam powder
+chicken_masala|சிக்கன் மசாலா|Chicken masala|spice|g|g||||||50|chicken masala, kozhi masala
+biryani_masala|பிரியாணி மசாலா|Biryani masala|spice|g|g||||||50|biryani masala
+
+# ---- Oils -----------------------------------------------------------------------------
+kadalai_ennai|கடலை எண்ணெய்|Groundnut oil|oil|ml|l||yes|250|||500|kadalai ennai, kadalai ennei, groundnut oil, peanut oil, Idhayam
+nallennai|நல்லெண்ணெய்|Gingelly oil|oil|ml|l||||||500|nallennai, nalla ennai, gingelly oil, sesame oil, til oil
+thengai_ennai|தேங்காய் எண்ணெய்|Coconut oil|oil|ml|l||||||500|thengai ennai, thengai ennei, coconut oil
+sunflower_oil|சூரியகாந்தி எண்ணெய்|Sunflower oil|oil|ml|l||||||1000|sunflower oil, refined oil, sooriyakanthi ennai, Gold Winner
+
+# ---- Other ------------------------------------------------------------------------------
+thengai|தேங்காய்|Coconut|other|piece|piece|30|yes|1|400|3|1|thengai, thenga, coconut, nariyal
+vazhai_ilai|வாழை இலை|Banana leaf|other|piece|piece|5|||||1|vazhai ilai, valai ilai, banana leaf, ilai
+vellam|வெல்லம்|Jaggery|other|g|g||||||250|vellam, jaggery, gur, achu vellam
+karupatti|கருப்பட்டி|Palm jaggery|other|g|g||||||250|karupatti, panai vellam, palm jaggery
+sakkarai|சர்க்கரை|Sugar|other|g|kg||||||500|sakkarai, seeni, jeeni, sugar, cheeni
+then|தேன்|Honey|other|g|g||||||250|then, thaen, honey
+theyilai|தேயிலைத் தூள்|Tea powder|other|g|g||||||250|theyilai, tea, tea powder, chai patti, 3 Roses, Red Label
+kaapi_thool|காபித் தூள்|Coffee powder|other|g|g||||||100|kaapi thool, kaapi podi, coffee, coffee powder, filter coffee
+appalam|அப்பளம்|Appalam|other|packet|packet||||||1|appalam, appalam packet, papad, pappadam
+oorugai|ஊறுகாய்|Pickle|other|g|g||||||200|oorugai, urugai, pickle, achar, mango pickle, lime pickle
+munthiri|முந்திரி|Cashew|other|g|g||||||50|munthiri, munthiri paruppu, cashew, kaju
+ular_thiratchai|உலர் திராட்சை|Raisins|other|g|g||||||50|ular thiratchai, kismis, raisins, dry grapes
+badam|பாதாம்|Almonds|other|g|g||||||100|badam, almonds
+perichampazham|பேரீச்சம்பழம்|Dates|other|g|g|60|||||250|perichampazham, pericham pazham, dates, khajoor
+appa_soda|ஆப்ப சோடா|Baking soda|other|g|g||||||50|appa soda, cooking soda, baking soda, soda uppu
