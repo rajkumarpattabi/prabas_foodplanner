@@ -2,8 +2,10 @@ import { act, fireEvent, render, screen } from '@testing-library/react'
 import { MemoryRouter } from 'react-router'
 import { afterEach, expect, test, vi } from 'vitest'
 import App from './App.tsx'
+import { AuthProvider } from './auth/AuthProvider.tsx'
 import { ToastProvider } from './components/ToastProvider.tsx'
 import { useToast } from './components/toastContext.ts'
+import { fakeAuth, fakeSession } from './test/fakeAuth.ts'
 import { ThemeProvider } from './theme/ThemeProvider.tsx'
 
 afterEach(() => {
@@ -16,7 +18,9 @@ function renderApp(path = '/') {
     <MemoryRouter initialEntries={[path]}>
       <ThemeProvider>
         <ToastProvider>
-          <App />
+          <AuthProvider auth={fakeAuth({ session: fakeSession() })}>
+            <App />
+          </AuthProvider>
         </ToastProvider>
       </ThemeProvider>
     </MemoryRouter>,

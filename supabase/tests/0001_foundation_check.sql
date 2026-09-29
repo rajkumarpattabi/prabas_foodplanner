@@ -143,3 +143,6 @@ end
 $$;
 
 rollback;
+
+-- Only reached when every check above passed (a failure aborts the script).
+select 'All foundation checks passed' as result;
