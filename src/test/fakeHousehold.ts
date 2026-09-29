@@ -1,5 +1,7 @@
 import { vi } from 'vitest'
 import { HouseholdError, type Household, type HouseholdApi, type Profile } from '../household/api.ts'
+import type { OutboxOp } from '../offline/db.ts'
+import type { OpResult } from '../offline/outbox.ts'
 import { normaliseJoinCode } from '../household/joinCode.ts'
 
 const T0 = '2026-09-29T10:00:00.000Z'
@@ -20,15 +22,17 @@ function profile(userId: string, displayName: string): Profile {
 interface Options {
   /** Start with user-1 already in a household with user-2. */
   withHousehold?: boolean
-  /** Make every write fail, to test rollbacks. */
-  failWrites?: boolean
+  /** Server unreachable: loads and writes fail, queued edits wait. */
+  offline?: boolean
 }
 
 /**
  * An in-memory household backend for tests, acting as user-1. It follows the same
  * rules as the database functions: one household per person, codes must match.
  */
-export function fakeHouseholdApi({ withHousehold = false, failWrites = false }: Options = {}) {
+export function fakeHouseholdApi({ withHousehold = false, offline = false }: Options = {}) {
+  const net = { offline }
+  const offlineError = () => new HouseholdError("You're offline. Try again when you're connected.")
   const me = 'user-1'
   const profiles = new Map<string, Profile>([
     [me, profile(me, 'raj')],
@@ -57,15 +61,18 @@ export function fakeHouseholdApi({ withHousehold = false, failWrites = false }: 
   }
 
   const write = async () => {
-    if (failWrites) throw new HouseholdError("You're offline. Try again when you're connected.")
+    if (net.offline) throw offlineError()
   }
 
   const api = {
-    load: vi.fn(async () => ({
+    load: vi.fn(async () => {
+      if (net.offline) throw offlineError()
+      return {
       me: { ...profiles.get(me)! },
       household: household && { ...household },
       members: members.map((m) => ({ ...m, joinedAt: T0, profile: { ...profiles.get(m.userId)! } })),
-    })),
+      }
+    }),
     createHousehold: vi.fn(async (name: string) => {
       await write()
       if (household) throw new HouseholdError("You're already in a household.")
@@ -87,15 +94,33 @@ export function fakeHouseholdApi({ withHousehold = false, failWrites = false }: 
       household = household && { ...household, join_code: code }
       return code
     }),
-    renameHousehold: vi.fn(async (_id: string, name: string) => {
-      await write()
-      household = household && { ...household, name, updated_by: me, updated_at: new Date().toISOString() }
-    }),
-    updateProfile: vi.fn(async (userId: string, patch: Partial<Profile>) => {
-      await write()
-      profiles.set(userId, { ...profiles.get(userId)!, ...patch })
-    }),
     subscribe: vi.fn(() => () => {}),
   }
-  return api satisfies HouseholdApi
+
+  /** Replays outbox ops against the in-memory store, like supabaseExecutor does against Postgres. */
+  const execute = vi.fn(async (op: OutboxOp): Promise<OpResult> => {
+    if (net.offline) return { status: 'retry' }
+    if (op.kind !== 'update') return { status: 'reject', message: 'not supported in the fake' }
+    const stamp = { updated_by: me, updated_at: new Date().toISOString() }
+    if (op.table === 'households' && household && op.match.id === household.id) {
+      if (typeof op.patch.name === 'string' && op.patch.name.length > 60) return { status: 'reject', message: 'too long' }
+      household = { ...household, ...(op.patch as Partial<Household>), ...stamp }
+    } else if (op.table === 'profiles' && profiles.has(op.match.user_id)) {
+      profiles.set(op.match.user_id, { ...profiles.get(op.match.user_id)!, ...(op.patch as Partial<Profile>), ...stamp })
+    }
+    return { status: 'ok' }
+  })
+
+  return {
+    ...(api satisfies HouseholdApi),
+    execute,
+    /** Read the "server" side, to check what was actually saved. */
+    server: {
+      household: () => household,
+      profile: (id: string) => profiles.get(id),
+    },
+    setOffline: (value: boolean) => {
+      net.offline = value
+    },
+  }
 }

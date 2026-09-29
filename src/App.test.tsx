@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, expect, test, vi } from 'vitest'
 import { ToastProvider } from './components/ToastProvider.tsx'
 import { useToast } from './components/toastContext.ts'
@@ -21,7 +21,7 @@ test('Settings opens from Plan, and a manual theme applies at once and is saved 
   fireEvent.click(screen.getByRole('radio', { name: 'Dark' }))
   expect(document.documentElement.dataset.theme).toBe('dark')
   expect(localStorage.getItem('prabas_theme_pref')).toBe('dark')
-  expect(household.updateProfile).toHaveBeenCalledWith('user-1', { theme_pref: 'dark' })
+  await waitFor(() => expect(household.server.profile('user-1')?.theme_pref).toBe('dark'))
 })
 
 test('toast offers undo', () => {

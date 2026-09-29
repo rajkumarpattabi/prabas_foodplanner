@@ -1,4 +1,5 @@
 import { Navigate, Route, Routes } from 'react-router'
+import { SyncStatus } from './components/SyncStatus.tsx'
 import { TabBar } from './components/TabBar.tsx'
 import { DishesScreen } from './screens/DishesScreen.tsx'
 import { PlanScreen } from './screens/PlanScreen.tsx'
@@ -10,6 +11,7 @@ import { StockScreen } from './screens/StockScreen.tsx'
 export default function App() {
   return (
     <div className="flex min-h-0 flex-1 flex-col">
+      <SyncStatus />
       <main className="flex-1 overflow-y-auto">
         <Routes>
           <Route path="/plan" element={<PlanScreen />} />

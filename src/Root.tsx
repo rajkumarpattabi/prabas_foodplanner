@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from 'react'
+import { useCallback, useEffect, useMemo } from 'react'
 import App from './App.tsx'
 import { AuthProvider } from './auth/AuthProvider.tsx'
 import { useAuth, type AuthApi } from './auth/authContext.ts'
@@ -9,33 +9,45 @@ import { useHousehold } from './household/householdContext.ts'
 import { LoadErrorScreen } from './household/LoadErrorScreen.tsx'
 import { OnboardingScreen } from './household/OnboardingScreen.tsx'
 import { supabase } from './lib/supabase.ts'
+import { supabaseExecutor } from './offline/executor.ts'
+import { createSync, type Sync } from './offline/setup.ts'
+import { SyncProvider } from './offline/SyncProvider.tsx'
 import { useTheme } from './theme/themeContext.ts'
+
+// One local database and outbox for the app's lifetime.
+const defaultSync = supabase ? createSync(supabaseExecutor(supabase)) : null
 
 interface RootProps {
   auth?: AuthApi
   householdApi?: HouseholdApi
+  sync?: Sync
 }
 
 /** Chooses what to show: setup problem, login, household setup, or the app. */
-export function Root({ auth = supabase?.auth, householdApi }: RootProps) {
+export function Root({ auth = supabase?.auth, householdApi, sync = defaultSync ?? undefined }: RootProps) {
   const api = useMemo(() => householdApi ?? (supabase ? supabaseHouseholdApi(supabase) : null), [householdApi])
-  if (!auth || !api) return <NotConfigured />
+  // Nothing from one person's session stays on the device after they log out.
+  const onSignedOut = useCallback(() => sync?.db.clearAll() ?? Promise.resolve(), [sync])
+  if (!auth || !api || !sync) return <NotConfigured />
   return (
-    <AuthProvider auth={auth}>
-      <AuthGate api={api} />
+    <AuthProvider auth={auth} onSignedOut={onSignedOut}>
+      <AuthGate api={api} sync={sync} />
     </AuthProvider>
   )
 }
 
-function AuthGate({ api }: { api: HouseholdApi }) {
+function AuthGate({ api, sync }: { api: HouseholdApi; sync: Sync }) {
   const { ready, session } = useAuth()
   if (!ready) return null // The saved session is read from local storage almost instantly.
   if (!session) return <LoginScreen />
+  const userId = session.user.id
   return (
     // Keyed by user, so logging in as someone else starts from a clean state.
-    <HouseholdProvider key={session.user.id} api={api} userId={session.user.id}>
-      <HouseholdGate />
-    </HouseholdProvider>
+    <SyncProvider key={userId} sync={sync} userId={userId}>
+      <HouseholdProvider api={api} userId={userId}>
+        <HouseholdGate />
+      </HouseholdProvider>
+    </SyncProvider>
   )
 }
 

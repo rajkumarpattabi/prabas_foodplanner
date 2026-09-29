@@ -23,15 +23,17 @@ export interface HouseholdSnapshot {
 /** A failure with a message that can be shown as is. */
 export class HouseholdError extends Error {}
 
-/** What the household screens need from the backend. Tests pass an in-memory fake. */
+/**
+ * What the household screens need from the backend, beyond queued edits (which go
+ * through the outbox). These need the server, so they only work online.
+ * Tests pass an in-memory fake.
+ */
 export interface HouseholdApi {
   /** Throws HouseholdError when it can't load (for example, offline). */
   load(userId: string): Promise<HouseholdSnapshot>
   createHousehold(name: string): Promise<void>
   joinHousehold(code: string): Promise<void>
   rotateJoinCode(): Promise<string>
-  renameHousehold(householdId: string, name: string): Promise<void>
-  updateProfile(userId: string, patch: ProfilePatch): Promise<void>
   /** Calls onChange when anything about my household changes on another device. */
   subscribe(userId: string, householdId: string | null, onChange: () => void): () => void
 }
@@ -116,16 +118,6 @@ export function supabaseHouseholdApi(sb: Supabase): HouseholdApi {
         const { data, error } = await sb.rpc('rotate_join_code')
         check(error)
         return data as string
-      }),
-
-    renameHousehold: (householdId, name) =>
-      guard(async () => {
-        check((await sb.from('households').update({ name }).eq('id', householdId)).error)
-      }),
-
-    updateProfile: (userId, patch) =>
-      guard(async () => {
-        check((await sb.from('profiles').update(patch).eq('user_id', userId)).error)
       }),
 
     subscribe(userId, householdId, onChange) {

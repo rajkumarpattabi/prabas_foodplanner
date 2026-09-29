@@ -23,8 +23,8 @@ describe('first login', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Start household' }))
 
     expect(await screen.findByRole('heading', { name: 'Plan' })).toBeTruthy()
-    expect(household.updateProfile).toHaveBeenCalledWith('user-1', { display_name: 'Raj' })
     expect(household.createHousehold).toHaveBeenCalledWith('Prabas home')
+    await waitFor(() => expect(household.server.profile('user-1')?.display_name).toBe('Raj'))
   })
 
   test('a wrong join code explains itself; the right one joins', async () => {
@@ -64,22 +64,24 @@ describe('Settings household section', () => {
     fireEvent.change(name, { target: { value: 'Chennai home' } })
     fireEvent.blur(name)
 
-    await waitFor(() => expect(household.renameHousehold).toHaveBeenCalledWith('hh-1', 'Chennai home'))
+    expect(name.value).toBe('Chennai home')
+    await waitFor(() => expect(household.server.household()?.name).toBe('Chennai home'))
     expect(await screen.findByText(/Updated by you/)).toBeTruthy()
 
     fireEvent.click(screen.getByRole('button', { name: 'Undo' }))
-    await waitFor(() => expect(household.renameHousehold).toHaveBeenLastCalledWith('hh-1', 'Prabas home'))
+    await waitFor(() => expect(household.server.household()?.name).toBe('Prabas home'))
     await waitFor(() => expect(name.value).toBe('Prabas home'))
   })
 
-  test('a failed save puts the old value back and says so', async () => {
-    renderApp({ path: '/settings', household: fakeHouseholdApi({ withHousehold: true, failWrites: true }) })
-    const name = (await screen.findByLabelText('Your name')) as HTMLInputElement
-    fireEvent.change(name, { target: { value: 'Rajkumar' } })
+  test('a change the server refuses is undone, with a message', async () => {
+    const { household } = renderApp({ path: '/settings' })
+    const name = (await screen.findByLabelText('Name')) as HTMLInputElement
+    fireEvent.change(name, { target: { value: 'x'.repeat(61) } })
     fireEvent.blur(name)
 
-    expect(await screen.findByText(/Not saved/)).toBeTruthy()
-    await waitFor(() => expect(name.value).toBe('raj'))
+    expect(await screen.findByText("A change couldn't be saved, so it was undone.")).toBeTruthy()
+    await waitFor(() => expect(name.value).toBe('Prabas home'))
+    expect(household.server.household()?.name).toBe('Prabas home')
   })
 
   test('New code replaces the join code', async () => {
@@ -92,7 +94,7 @@ describe('Settings household section', () => {
   test('dish name order is saved to the profile', async () => {
     const { household } = renderApp({ path: '/settings' })
     fireEvent.click(await screen.findByRole('radio', { name: 'English first' }))
-    expect(household.updateProfile).toHaveBeenCalledWith('user-1', { script_pref: 'en_first' })
     expect(screen.getByRole('radio', { name: 'English first' }).getAttribute('aria-checked')).toBe('true')
+    await waitFor(() => expect(household.server.profile('user-1')?.script_pref).toBe('en_first'))
   })
 })

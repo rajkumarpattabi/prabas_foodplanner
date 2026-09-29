@@ -2,7 +2,14 @@ import type { Session } from '@supabase/supabase-js'
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { AuthContext, describeAuthError, type AuthApi } from './authContext.ts'
 
-export function AuthProvider({ auth, children }: { auth: AuthApi; children: ReactNode }) {
+interface Props {
+  auth: AuthApi
+  /** Runs after logging out, for example to clear data saved on the device. */
+  onSignedOut?: () => Promise<void>
+  children: ReactNode
+}
+
+export function AuthProvider({ auth, onSignedOut, children }: Props) {
   const [ready, setReady] = useState(false)
   const [session, setSession] = useState<Session | null>(null)
 
@@ -49,7 +56,8 @@ export function AuthProvider({ auth, children }: { auth: AuthApi; children: Reac
 
   const signOut = useCallback(async () => {
     await auth.signOut()
-  }, [auth])
+    await onSignedOut?.()
+  }, [auth, onSignedOut])
 
   const value = useMemo(
     () => ({ ready, session, sendCode, verifyCode, signOut }),
