@@ -4,6 +4,7 @@ import { useToast } from '../components/toastContext.ts'
 import { HouseholdError } from '../household/api.ts'
 import { useReadyHousehold } from '../household/householdContext.ts'
 import { backupToCsv } from './csv.ts'
+import { DriveSection } from './drive/DriveSection.tsx'
 import { triggerDownload } from './download.ts'
 import { backupFileName, localDate, parseBackup, type Backup } from './format.ts'
 import { RestoreConfirm } from './RestoreConfirm.tsx'
@@ -69,7 +70,9 @@ export function BackupSection() {
         </button>
       </div>
 
-      <h3 className="mt-4 text-sm text-ink-muted">Restore</h3>
+      <DriveSection />
+
+      <h3 className="mt-4 text-sm text-ink-muted">Restore from a file</h3>
       {isBackupOwner ? (
         <>
           <button type="button" className={`${button} mt-2`} disabled={busy !== null} onClick={() => fileInput.current?.click()}>

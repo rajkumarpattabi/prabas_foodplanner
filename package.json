@@ -25,6 +25,7 @@
   "devDependencies": {
     "@tailwindcss/vite": "^4.3.3",
     "@testing-library/react": "^16.3.3",
+    "@types/google.accounts": "^0.0.18",
     "@types/node": "^24.19.0",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",

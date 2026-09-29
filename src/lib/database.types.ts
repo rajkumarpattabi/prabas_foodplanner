@@ -24,9 +24,11 @@ export type Database = {
           name: string
           join_code: string
           backup_owner_id: string | null
+          /** When the backup owner's phone last backed up to Drive (0003). */
+          drive_backup_at: string | null
         }
         Insert: never
-        Update: { name?: string; backup_owner_id?: string | null }
+        Update: { name?: string; backup_owner_id?: string | null; drive_backup_at?: string | null }
         Relationships: []
       }
       household_members: {

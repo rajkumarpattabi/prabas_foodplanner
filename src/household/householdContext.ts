@@ -17,6 +17,8 @@ export interface HouseholdState {
   /** Applied at once; reverted with a toast if saving fails. */
   renameHousehold: (name: string) => void
   updateProfile: (patch: ProfilePatch) => void
+  /** Tell everyone in the household when Drive backup last succeeded. */
+  recordDriveBackup: (at: string) => void
 }
 
 export const HouseholdContext = createContext<HouseholdState | null>(null)

@@ -5,6 +5,10 @@ import { useAuth, type AuthApi } from './auth/authContext.ts'
 import { LoginScreen } from './auth/LoginScreen.tsx'
 import { supabaseBackupApi, type BackupApi } from './backup/api.ts'
 import { BackupApiContext } from './backup/backupContext.ts'
+import { GD, type DriveDeps } from './backup/drive/driveBackup.ts'
+import { DriveDepsContext } from './backup/drive/driveContext.ts'
+import { driveFiles } from './backup/drive/driveFiles.ts'
+import { googleClientId, googleTokenSource } from './backup/drive/google.ts'
 import { supabaseHouseholdApi, type HouseholdApi } from './household/api.ts'
 import { HouseholdProvider } from './household/HouseholdProvider.tsx'
 import { useHousehold } from './household/householdContext.ts'
@@ -18,25 +22,42 @@ import { useTheme } from './theme/themeContext.ts'
 
 // One local database and outbox for the app's lifetime.
 const defaultSync = supabase ? createSync(supabaseExecutor(supabase)) : null
+// Google Drive, if this build has a Google client id.
+const defaultDrive: DriveDeps | null = googleClientId
+  ? { tokens: googleTokenSource(googleClientId), files: driveFiles() }
+  : null
 
 interface RootProps {
   auth?: AuthApi
   householdApi?: HouseholdApi
   backupApi?: BackupApi
   sync?: Sync
+  drive?: DriveDeps | null
 }
 
 /** Chooses what to show: setup problem, login, household setup, or the app. */
-export function Root({ auth = supabase?.auth, householdApi, backupApi, sync = defaultSync ?? undefined }: RootProps) {
+export function Root({
+  auth = supabase?.auth,
+  householdApi,
+  backupApi,
+  sync = defaultSync ?? undefined,
+  drive = defaultDrive,
+}: RootProps) {
   const api = useMemo(() => householdApi ?? (supabase ? supabaseHouseholdApi(supabase) : null), [householdApi])
   const backup = useMemo(() => backupApi ?? (supabase ? supabaseBackupApi(supabase) : null), [backupApi])
   // Nothing from one person's session stays on the device after they log out.
-  const onSignedOut = useCallback(() => sync?.db.clearAll() ?? Promise.resolve(), [sync])
+  const onSignedOut = useCallback(async () => {
+    Object.values(GD).forEach((k) => localStorage.removeItem(k))
+    drive?.tokens.forget()
+    await sync?.db.clearAll()
+  }, [sync, drive])
   if (!auth || !api || !backup || !sync) return <NotConfigured />
   return (
     <AuthProvider auth={auth} onSignedOut={onSignedOut}>
       <BackupApiContext.Provider value={backup}>
-        <AuthGate api={api} sync={sync} />
+        <DriveDepsContext.Provider value={drive}>
+          <AuthGate api={api} sync={sync} />
+        </DriveDepsContext.Provider>
       </BackupApiContext.Provider>
     </AuthProvider>
   )

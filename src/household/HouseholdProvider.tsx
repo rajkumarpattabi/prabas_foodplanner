@@ -112,6 +112,14 @@ export function HouseholdProvider({ api, userId, children }: Props) {
     [edit],
   )
 
+  const recordDriveBackup = useCallback(
+    (at: string) => {
+      const hid = current.current?.household?.id
+      if (hid) edit('households', { id: hid }, { drive_backup_at: at })
+    },
+    [edit],
+  )
+
   /** Starting or joining needs the server, so these run online and report errors inline. */
   const setUp = useCallback(
     async (run: () => Promise<void>, displayName: string) => {
@@ -160,8 +168,20 @@ export function HouseholdProvider({ api, userId, children }: Props) {
       rotateJoinCode,
       renameHousehold,
       updateProfile,
+      recordDriveBackup,
     }),
-    [status, snapshot, error, reload, createHousehold, joinHousehold, rotateJoinCode, renameHousehold, updateProfile],
+    [
+      status,
+      snapshot,
+      error,
+      reload,
+      createHousehold,
+      joinHousehold,
+      rotateJoinCode,
+      renameHousehold,
+      updateProfile,
+      recordDriveBackup,
+    ],
   )
   return <HouseholdContext.Provider value={value}>{children}</HouseholdContext.Provider>
 }

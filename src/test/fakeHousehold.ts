@@ -51,6 +51,7 @@ export function fakeHouseholdApi({ withHousehold = false, offline = false }: Opt
     name,
     join_code: code,
     backup_owner_id: by,
+    drive_backup_at: null,
     created_by: by,
     created_at: T0,
     updated_by: by,

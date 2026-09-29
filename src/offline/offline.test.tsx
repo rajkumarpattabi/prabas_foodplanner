@@ -85,6 +85,7 @@ describe('applyPending', () => {
       name: 'Old',
       join_code: 'K7M4QP',
       backup_owner_id: 'u1',
+      drive_backup_at: null,
       created_by: 'u1',
       created_at: '',
       updated_by: 'u1',
