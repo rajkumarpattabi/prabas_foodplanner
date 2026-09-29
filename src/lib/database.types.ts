@@ -1,6 +1,14 @@
 // Types for the Supabase schema, in the shape `supabase gen types` produces.
 // Keep in step with supabase/migrations/. Tables are added here batch by batch.
 
+import type { Item as ItemInterface, StockEvent as StockEventInterface } from '../stock/types.ts'
+
+// supabase-js needs plain object types for rows (interfaces don't fit its table
+// constraint), so the interfaces are flattened here.
+type Plain<T> = { [K in keyof T]: T[K] }
+type Item = Plain<ItemInterface>
+type StockEvent = Plain<StockEventInterface>
+
 type Timestamps = {
   created_by: string | null
   created_at: string
@@ -50,6 +58,35 @@ export type Database = {
         }
         Insert: never
         Update: { display_name?: string; script_pref?: ScriptPref; theme_pref?: ThemePrefDb }
+        Relationships: []
+      }
+      items: {
+        Row: Item & { catalog_key: string | null }
+        Insert: Partial<Item> & Pick<Item, 'household_id' | 'name_ta' | 'name_en' | 'category' | 'unit' | 'display_unit' | 'step'>
+        Update: Partial<
+          Pick<
+            Item,
+            | 'name_ta'
+            | 'name_en'
+            | 'aliases'
+            | 'category'
+            | 'display_unit'
+            | 'shelf_life_days'
+            | 'is_staple'
+            | 'low_threshold'
+            | 'piece_weight_g'
+            | 'has_opened_form'
+            | 'opened_shelf_life_days'
+            | 'step'
+            | 'archived'
+          >
+        >
+        Relationships: []
+      }
+      stock_events: {
+        Row: StockEvent
+        Insert: Partial<StockEvent> & Pick<StockEvent, 'id' | 'household_id' | 'item_id' | 'kind' | 'quantity'>
+        Update: never
         Relationships: []
       }
     }
