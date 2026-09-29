@@ -1,5 +1,9 @@
 // The backup file: one JSON snapshot of all household tables (see docs/DRIVE_BACKUP.md).
 
+import { localDate } from '../lib/dates.ts'
+
+export { localDate }
+
 export type Row = Record<string, unknown>
 
 export interface Backup {
@@ -67,8 +71,4 @@ export function parseBackup(
 /** prabas-backup-YYYY-MM-DD.json, using the device's local date. */
 export function backupFileName(now = new Date()): string {
   return `prabas-backup-${localDate(now)}.json`
-}
-
-export function localDate(d: Date): string {
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 }
