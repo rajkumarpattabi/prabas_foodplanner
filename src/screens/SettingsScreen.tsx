@@ -1,5 +1,6 @@
 import { Link } from 'react-router'
 import { useAuth } from '../auth/authContext.ts'
+import { BackupSection } from '../backup/BackupSection.tsx'
 import { EditableText } from '../components/EditableText.tsx'
 import { BackIcon } from '../components/icons.tsx'
 import { Screen } from '../components/Screen.tsx'
@@ -71,6 +72,8 @@ export function SettingsScreen() {
         />
         <p className="mt-2 text-sm text-ink-muted">Auto switches to dark after sunset in Chennai.</p>
       </Section>
+
+      <BackupSection />
 
       <Section title="Account">
         <p className="text-sm">

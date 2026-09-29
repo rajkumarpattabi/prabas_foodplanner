@@ -1,5 +1,7 @@
 import { vi } from 'vitest'
 import { HouseholdError, type Household, type HouseholdApi, type Profile } from '../household/api.ts'
+import type { BackupApi } from '../backup/api.ts'
+import type { Row } from '../backup/format.ts'
 import type { OutboxOp } from '../offline/db.ts'
 import type { OpResult } from '../offline/outbox.ts'
 import { normaliseJoinCode } from '../household/joinCode.ts'
@@ -111,8 +113,33 @@ export function fakeHouseholdApi({ withHousehold = false, offline = false }: Opt
     return { status: 'ok' }
   })
 
+  /** Backup reads and restores, with the same rules as the restore_snapshot SQL function. */
+  const backupApi = {
+    fetchTables: vi.fn(async () => {
+      if (net.offline) throw offlineError()
+      const memberIds = new Set(members.map((m) => m.userId))
+      return { profiles: [...profiles.values()].filter((p) => memberIds.has(p.user_id)).map((p) => ({ ...p })) }
+    }),
+    restore: vi.fn(async (tables: Record<string, Row[]>) => {
+      if (net.offline) throw offlineError()
+      if (household?.backup_owner_id !== me) throw new HouseholdError('Only the backup owner can restore.')
+      const memberIds = new Set(members.map((m) => m.userId))
+      for (const row of (tables.profiles ?? []) as Partial<Profile>[]) {
+        const current = row.user_id && profiles.get(row.user_id)
+        if (!current || !memberIds.has(current.user_id)) continue
+        profiles.set(current.user_id, {
+          ...current,
+          display_name: row.display_name ?? current.display_name,
+          script_pref: row.script_pref ?? current.script_pref,
+          theme_pref: row.theme_pref ?? current.theme_pref,
+        })
+      }
+    }),
+  } satisfies BackupApi
+
   return {
     ...(api satisfies HouseholdApi),
+    backupApi,
     execute,
     /** Read the "server" side, to check what was actually saved. */
     server: {
@@ -121,6 +148,9 @@ export function fakeHouseholdApi({ withHousehold = false, offline = false }: Opt
     },
     setOffline: (value: boolean) => {
       net.offline = value
+    },
+    setBackupOwner: (userId: string) => {
+      if (household) household = { ...household, backup_owner_id: userId }
     },
   }
 }

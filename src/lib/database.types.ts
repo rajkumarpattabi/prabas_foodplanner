@@ -58,6 +58,7 @@ export type Database = {
       rotate_join_code: { Args: Record<string, never>; Returns: string }
       is_member: { Args: { hid: string }; Returns: boolean }
       shares_household: { Args: { other: string }; Returns: boolean }
+      restore_snapshot: { Args: { p_tables: Record<string, Record<string, unknown>[]> }; Returns: undefined }
     }
     Enums: { [_ in never]: never }
     CompositeTypes: { [_ in never]: never }
