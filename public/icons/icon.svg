@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- PRABAS placeholder icon: one banana leaf set diagonally on cream, with a turmeric dot.
+       Everything sits inside the central 80% (the Android maskable safe zone). -->
+  <rect width="512" height="512" fill="#FBF8F1"/>
+  <g transform="rotate(-45 256 256)">
+    <!-- Leaf halves: slightly different greens give the fold some depth -->
+    <path d="M96 256 C150 172 350 172 426 256 Z" fill="#4E8A1C"/>
+    <path d="M96 256 C150 340 350 340 426 256 Z" fill="#3B6D11"/>
+    <!-- Side veins, angled toward the tip -->
+    <g stroke="#EAF3DE" stroke-opacity="0.45" stroke-width="4" stroke-linecap="round">
+      <path d="M140 256 L164 211 M192 256 L214 197 M244 256 L264 193 M296 256 L314 195 M348 256 L362 207"/>
+      <path d="M140 256 L164 301 M192 256 L214 315 M244 256 L264 319 M296 256 L314 317 M348 256 L362 305"/>
+    </g>
+    <!-- Central vein, running out into a short stem -->
+    <path d="M68 256 L418 256" stroke="#EAF3DE" stroke-width="9" stroke-linecap="round"/>
+  </g>
+  <circle cx="176" cy="176" r="24" fill="#E3A12F"/>
+</svg>

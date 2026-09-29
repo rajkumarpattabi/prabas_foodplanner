@@ -104,4 +104,10 @@
       'Tamil Sangam MN',
       sans-serif;
   }
+  /* Full-height column: optional update banner, then the app (content above the tab bar). */
+  #root {
+    display: flex;
+    flex-direction: column;
+    height: 100dvh;
+  }
 }

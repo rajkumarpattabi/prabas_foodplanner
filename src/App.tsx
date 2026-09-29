@@ -9,7 +9,7 @@ import { StockScreen } from './screens/StockScreen.tsx'
 /** The signed-in app: scrolling screen content above a fixed bottom tab bar. */
 export default function App() {
   return (
-    <div className="flex h-dvh flex-col">
+    <div className="flex min-h-0 flex-1 flex-col">
       <main className="flex-1 overflow-y-auto">
         <Routes>
           <Route path="/plan" element={<PlanScreen />} />
