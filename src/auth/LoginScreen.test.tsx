@@ -1,25 +1,10 @@
-import { fireEvent, render, screen } from '@testing-library/react'
-import { MemoryRouter } from 'react-router'
-import { afterEach, expect, test } from 'vitest'
-import { ToastProvider } from '../components/ToastProvider.tsx'
-import { Root } from '../Root.tsx'
+import { fireEvent, screen } from '@testing-library/react'
+import { expect, test } from 'vitest'
 import { fakeAuth, fakeSession, TEST_CODE } from '../test/fakeAuth.ts'
-import { ThemeProvider } from '../theme/ThemeProvider.tsx'
+import { renderApp } from '../test/renderApp.tsx'
 import { PENDING_TTL_MS, savePending } from './pendingLogin.ts'
 
-afterEach(() => localStorage.clear())
-
-function renderRoot(auth: ReturnType<typeof fakeAuth>) {
-  return render(
-    <MemoryRouter>
-      <ThemeProvider>
-        <ToastProvider>
-          <Root auth={auth} />
-        </ToastProvider>
-      </ThemeProvider>
-    </MemoryRouter>,
-  )
-}
+const renderRoot = (auth: ReturnType<typeof fakeAuth>) => renderApp({ auth })
 
 test('email, then code, then the app', async () => {
   const auth = fakeAuth()
@@ -71,6 +56,6 @@ test('a saved session opens the app, and log out returns to login', async () => 
   renderRoot(fakeAuth({ session: fakeSession() }))
   fireEvent.click(await screen.findByRole('link', { name: 'Settings' }))
   expect(screen.getByText('raj@example.test')).toBeTruthy()
-  fireEvent.click(screen.getByRole('button', { name: 'Log out' }))
+  fireEvent.click(screen.getAllByRole('button', { name: 'Log out' })[0])
   expect(await screen.findByLabelText('Email')).toBeTruthy()
 })

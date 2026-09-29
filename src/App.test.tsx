@@ -1,45 +1,27 @@
 import { act, fireEvent, render, screen } from '@testing-library/react'
-import { MemoryRouter } from 'react-router'
 import { afterEach, expect, test, vi } from 'vitest'
-import App from './App.tsx'
-import { AuthProvider } from './auth/AuthProvider.tsx'
 import { ToastProvider } from './components/ToastProvider.tsx'
 import { useToast } from './components/toastContext.ts'
-import { fakeAuth, fakeSession } from './test/fakeAuth.ts'
-import { ThemeProvider } from './theme/ThemeProvider.tsx'
+import { renderApp } from './test/renderApp.tsx'
 
 afterEach(() => {
-  localStorage.clear()
   vi.useRealTimers()
 })
 
-function renderApp(path = '/') {
-  return render(
-    <MemoryRouter initialEntries={[path]}>
-      <ThemeProvider>
-        <ToastProvider>
-          <AuthProvider auth={fakeAuth({ session: fakeSession() })}>
-            <App />
-          </AuthProvider>
-        </ToastProvider>
-      </ThemeProvider>
-    </MemoryRouter>,
-  )
-}
-
-test('opens on Plan and switches tabs', () => {
+test('opens on Plan and switches tabs', async () => {
   renderApp()
-  expect(screen.getByRole('heading', { name: 'Plan' })).toBeTruthy()
+  expect(await screen.findByRole('heading', { name: 'Plan' })).toBeTruthy()
   fireEvent.click(screen.getByRole('link', { name: 'Stock' }))
   expect(screen.getByRole('heading', { name: 'Stock' })).toBeTruthy()
 })
 
-test('Settings opens from Plan, and a manual theme applies at once', () => {
-  renderApp('/plan')
-  fireEvent.click(screen.getByRole('link', { name: 'Settings' }))
+test('Settings opens from Plan, and a manual theme applies at once and is saved to the profile', async () => {
+  const { household } = renderApp({ path: '/plan' })
+  fireEvent.click(await screen.findByRole('link', { name: 'Settings' }))
   fireEvent.click(screen.getByRole('radio', { name: 'Dark' }))
   expect(document.documentElement.dataset.theme).toBe('dark')
   expect(localStorage.getItem('prabas_theme_pref')).toBe('dark')
+  expect(household.updateProfile).toHaveBeenCalledWith('user-1', { theme_pref: 'dark' })
 })
 
 test('toast offers undo', () => {

@@ -1,23 +1,58 @@
+import { useEffect, useMemo } from 'react'
 import App from './App.tsx'
 import { AuthProvider } from './auth/AuthProvider.tsx'
 import { useAuth, type AuthApi } from './auth/authContext.ts'
 import { LoginScreen } from './auth/LoginScreen.tsx'
+import { supabaseHouseholdApi, type HouseholdApi } from './household/api.ts'
+import { HouseholdProvider } from './household/HouseholdProvider.tsx'
+import { useHousehold } from './household/householdContext.ts'
+import { LoadErrorScreen } from './household/LoadErrorScreen.tsx'
+import { OnboardingScreen } from './household/OnboardingScreen.tsx'
 import { supabase } from './lib/supabase.ts'
+import { useTheme } from './theme/themeContext.ts'
 
-/** Chooses what to show: setup problem, login, or the app. */
-export function Root({ auth = supabase?.auth }: { auth?: AuthApi }) {
-  if (!auth) return <NotConfigured />
+interface RootProps {
+  auth?: AuthApi
+  householdApi?: HouseholdApi
+}
+
+/** Chooses what to show: setup problem, login, household setup, or the app. */
+export function Root({ auth = supabase?.auth, householdApi }: RootProps) {
+  const api = useMemo(() => householdApi ?? (supabase ? supabaseHouseholdApi(supabase) : null), [householdApi])
+  if (!auth || !api) return <NotConfigured />
   return (
     <AuthProvider auth={auth}>
-      <Gate />
+      <AuthGate api={api} />
     </AuthProvider>
   )
 }
 
-function Gate() {
+function AuthGate({ api }: { api: HouseholdApi }) {
   const { ready, session } = useAuth()
   if (!ready) return null // The saved session is read from local storage almost instantly.
-  return session ? <App /> : <LoginScreen />
+  if (!session) return <LoginScreen />
+  return (
+    // Keyed by user, so logging in as someone else starts from a clean state.
+    <HouseholdProvider key={session.user.id} api={api} userId={session.user.id}>
+      <HouseholdGate />
+    </HouseholdProvider>
+  )
+}
+
+function HouseholdGate() {
+  const { status, snapshot } = useHousehold()
+  const { setPref } = useTheme()
+
+  // The theme choice follows the person across devices.
+  const themePref = snapshot?.me.theme_pref
+  useEffect(() => {
+    if (themePref) setPref(themePref)
+  }, [themePref, setPref])
+
+  if (status === 'loading') return null
+  if (status === 'error') return <LoadErrorScreen />
+  if (!snapshot?.household) return <OnboardingScreen />
+  return <App />
 }
 
 function NotConfigured() {
