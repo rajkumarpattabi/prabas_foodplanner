@@ -1,3 +1,5 @@
+/// <reference types="node" />
+// This test reads the catalogue files from disk, so it needs Node types.
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { describe, expect, test } from 'vitest'
