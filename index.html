@@ -3,7 +3,15 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="theme-color" content="#fbf8f1" />
     <title>PRABAS Food Planner</title>
+    <script>
+      // Apply the last theme before first paint, so dark mode doesn't flash light on open.
+      try {
+        var t = localStorage.getItem('prabas_theme_last')
+        if (t === 'dark' || t === 'light') document.documentElement.dataset.theme = t
+      } catch (e) {}
+    </script>
   </head>
   <body>
     <div id="root"></div>

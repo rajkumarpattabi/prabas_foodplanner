@@ -1,1 +1,107 @@
 @import 'tailwindcss';
+
+/* Dark mode follows the data-theme attribute set by ThemeProvider (auto after sunset, or manual). */
+@custom-variant dark (&:where([data-theme='dark'], [data-theme='dark'] *));
+
+/*
+ * Design system colours. Each role has a fill (backgrounds, chips) and a text colour;
+ * leaf and turmeric also have a strong shade. Colour always carries meaning and is
+ * always paired with a label or icon.
+ *
+ * Use as Tailwind utilities: bg-leaf-fill, text-leaf, text-leaf-strong, bg-bg, text-ink…
+ */
+:root {
+  --bg: #fbf8f1;
+  --surface: #ffffff;
+  --ink: #2c2c2a;
+  --ink-muted: #6b6a64;
+  --line: #e7e2d6;
+
+  --leaf-fill: #eaf3de;
+  --leaf: #3b6d11;
+  --leaf-strong: #27500a;
+  --turmeric-fill: #faeeda;
+  --turmeric: #ba7517;
+  --turmeric-strong: #633806;
+  --coral-fill: #faece7;
+  --coral: #993c1d;
+  --teal-fill: #e1f5ee;
+  --teal: #085041;
+  --purple-fill: #eeedfe;
+  --purple: #3c3489;
+  --red-fill: #fcebeb;
+  --red: #a32d2d;
+  --blue-fill: #e6f1fb;
+  --blue: #0c447c;
+}
+
+[data-theme='dark'] {
+  --bg: #1b1a17;
+  --surface: #262521;
+  --ink: #ece9e0;
+  --ink-muted: #a8a59b;
+  --line: #3a3833;
+
+  --leaf-fill: #25330f;
+  --leaf: #a9d17a;
+  --leaf-strong: #c9e6a3;
+  --turmeric-fill: #3a2a10;
+  --turmeric: #ebb35c;
+  --turmeric-strong: #f6d39a;
+  --coral-fill: #3d1e14;
+  --coral: #f0a084;
+  --teal-fill: #0e3129;
+  --teal: #7fd6b8;
+  --purple-fill: #25234a;
+  --purple: #b9b4f5;
+  --red-fill: #3e1717;
+  --red: #f09595;
+  --blue-fill: #102a42;
+  --blue: #8fc2f0;
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-ink: var(--ink);
+  --color-ink-muted: var(--ink-muted);
+  --color-line: var(--line);
+
+  --color-leaf-fill: var(--leaf-fill);
+  --color-leaf: var(--leaf);
+  --color-leaf-strong: var(--leaf-strong);
+  --color-turmeric-fill: var(--turmeric-fill);
+  --color-turmeric: var(--turmeric);
+  --color-turmeric-strong: var(--turmeric-strong);
+  --color-coral-fill: var(--coral-fill);
+  --color-coral: var(--coral);
+  --color-teal-fill: var(--teal-fill);
+  --color-teal: var(--teal);
+  --color-purple-fill: var(--purple-fill);
+  --color-purple: var(--purple);
+  --color-red-fill: var(--red-fill);
+  --color-red: var(--red);
+  --color-blue-fill: var(--blue-fill);
+  --color-blue: var(--blue);
+}
+
+@layer base {
+  html {
+    color-scheme: light;
+    -webkit-tap-highlight-color: transparent;
+  }
+  html[data-theme='dark'] {
+    color-scheme: dark;
+  }
+  body {
+    @apply bg-bg text-ink antialiased;
+    font-family:
+      system-ui,
+      -apple-system,
+      'Segoe UI',
+      Roboto,
+      'Noto Sans Tamil',
+      'Tamil Sangam MN',
+      sans-serif;
+  }
+}
