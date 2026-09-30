@@ -87,8 +87,9 @@ Colourful but calm. Colour always carries meaning. Never rely on colour alone; p
 - [x] Batch 1: Foundation (done 2026-09-29: installable PWA on both phones, email-code login,
       shared household with join code, offline cache and write queue, file and Drive backup.
       Supabase migrations 0001–0003 applied.)
-- [ ] Batch 2: Items and stock (in progress: steps 1–4 of 9 done: stock logic, migration 0004,
-      198-item catalogue 0005, both applied; data layer. Next: step 5, Stock screen.)
+- [ ] Batch 2: Items and stock (in progress: steps 1–5 of 9 done: stock logic, migration 0004,
+      198-item catalogue 0005 (reviewed), both applied; data layer; Stock screen with exact undo.
+      Next: step 6, Add stock sheet.)
 - [ ] Batch 3: Dish library
 - [ ] Batch 4: Plan and cook
 - [ ] Batch 5: Tamil calendar rules
