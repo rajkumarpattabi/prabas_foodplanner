@@ -1,9 +1,135 @@
-import { Placeholder, Screen } from '../components/Screen.tsx'
+import { useCallback, useMemo, useState, type ReactNode } from 'react'
+import { Screen } from '../components/Screen.tsx'
+import { useToast } from '../components/toastContext.ts'
+import { useReadyHousehold } from '../household/householdContext.ts'
+import { namePair } from '../lib/names.ts'
+import { minusEvents, plusEvents, undoEvents, usedUpEvents } from '../stock/actions.ts'
+import { computeStock } from '../stock/computeStock.ts'
+import { searchItems } from '../stock/search.ts'
+import { StockItemRow } from '../stock/StockItemRow.tsx'
+import { useStock, type NewStockEvent } from '../stock/stockContext.ts'
+import { formatQuantity } from '../stock/units.ts'
+import { sections, stockRows, type StockRow } from '../stock/view.ts'
+
+const MAX_RESULTS = 20
 
 export function StockScreen() {
+  const { status, items, eventsByItem, record, reload } = useStock()
+  const { me } = useReadyHousehold()
+  const toast = useToast()
+  const pref = me.script_pref
+  const [query, setQuery] = useState('')
+  const [showFine, setShowFine] = useState(false)
+
+  const rows = useMemo(() => stockRows(items, eventsByItem), [items, eventsByItem])
+  const grouped = useMemo(() => sections(rows), [rows])
+  const results = useMemo(() => {
+    const byId = new Map(rows.map((r) => [r.item.id, r]))
+    return searchItems(
+      rows.map((r) => r.item),
+      query,
+    )
+      .slice(0, MAX_RESULTS)
+      .map((i) => byId.get(i.id)!)
+  }, [rows, query])
+
+  /** Apply at once, and offer an exact undo. */
+  const act = useCallback(
+    (row: StockRow, events: NewStockEvent[], message: (total: string) => string) => {
+      if (!events.length) return
+      const { item, events: before } = row
+      const added = record(events)
+      const undo = undoEvents(item, before, added)
+      const after = computeStock(item, [...before, ...added]).total
+      toast(message(formatQuantity(after, item)), { undo: () => void record(undo) })
+    },
+    [record, toast],
+  )
+
+  const renderRow = (row: StockRow) => {
+    const [name] = namePair(row.item, pref)
+    return (
+      <StockItemRow
+        key={row.item.id}
+        row={row}
+        pref={pref}
+        onPlus={() => act(row, plusEvents(row.item), (t) => `${name}: ${t}`)}
+        onMinus={() => act(row, minusEvents(row.item, row.stock), (t) => `${name}: ${t}`)}
+        onUsedUp={() => act(row, usedUpEvents(row.item, row.stock), () => `${name} used up`)}
+      />
+    )
+  }
+
+  if (status === 'loading') return <Screen title="Stock">{null}</Screen>
+  if (status === 'error') {
+    return (
+      <Screen title="Stock">
+        <div className="mt-8 text-center">
+          <p className="font-medium">Couldn't load your stock</p>
+          <p className="mt-1 text-sm text-ink-muted">Check your connection and try again.</p>
+          <button type="button" onClick={() => void reload()} className="mt-4 min-h-11 rounded-xl bg-leaf px-5 font-medium text-bg">
+            Try again
+          </button>
+        </div>
+      </Screen>
+    )
+  }
+
+  const searching = query.trim() !== ''
+  const nothingShown = !grouped.use_soon.length && !grouped.running_low.length && !grouped.fine.length
+
   return (
     <Screen title="Stock">
-      <Placeholder>Your stock will show here, grouped by what to use first.</Placeholder>
+      <label className="block">
+        <span className="sr-only">Search stock</span>
+        <input
+          type="search"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="Search in Tamil or English"
+          className="min-h-11 w-full rounded-xl border border-line bg-surface px-3"
+        />
+      </label>
+
+      {searching ? (
+        results.length ? (
+          <List title="Results">{results.map(renderRow)}</List>
+        ) : (
+          <p className="mt-6 text-center text-ink-muted">No items match "{query.trim()}".</p>
+        )
+      ) : nothingShown ? (
+        <p className="mt-8 rounded-2xl border border-dashed border-line p-6 text-center text-ink-muted">
+          Nothing in stock yet. Search for an item and tap + to add it.
+        </p>
+      ) : (
+        <>
+          {grouped.use_soon.length > 0 && <List title="Use soon">{grouped.use_soon.map(renderRow)}</List>}
+          {grouped.running_low.length > 0 && <List title="Running low">{grouped.running_low.map(renderRow)}</List>}
+          {grouped.fine.length > 0 && (
+            <section className="mt-5">
+              <button
+                type="button"
+                aria-expanded={showFine}
+                onClick={() => setShowFine((v) => !v)}
+                className="flex min-h-11 w-full items-center justify-between rounded-xl bg-leaf-fill px-3 text-sm font-medium text-leaf-strong"
+              >
+                <span>All good · {grouped.fine.length} {grouped.fine.length === 1 ? 'item' : 'items'} fine</span>
+                <span aria-hidden="true">{showFine ? '▴' : '▾'}</span>
+              </button>
+              {showFine && <ul className="mt-2 rounded-xl border border-line bg-surface">{grouped.fine.map(renderRow)}</ul>}
+            </section>
+          )}
+        </>
+      )}
     </Screen>
+  )
+}
+
+function List({ title, children }: { title: string; children: ReactNode }) {
+  return (
+    <section className="mt-5">
+      <h2 className="mb-2 text-sm font-semibold text-ink-muted">{title}</h2>
+      <ul className="rounded-xl border border-line bg-surface">{children}</ul>
+    </section>
   )
 }

@@ -1,4 +1,5 @@
 import { act, render, waitFor } from '@testing-library/react'
+import { useEffect } from 'react'
 import { afterEach, describe, expect, test } from 'vitest'
 import { ToastProvider } from '../components/ToastProvider.tsx'
 import { createSync, type Sync } from '../offline/setup.ts'
@@ -27,7 +28,10 @@ function renderStock({
 }: { household?: ReturnType<typeof fakeHouseholdApi>; sync?: Sync } = {}) {
   const current: { state: StockState | null } = { state: null }
   function Probe() {
-    current.state = useStock()
+    const state = useStock()
+    useEffect(() => {
+      current.state = state
+    })
     return null
   }
   const result = render(
