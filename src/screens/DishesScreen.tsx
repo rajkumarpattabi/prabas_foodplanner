@@ -1,7 +1,9 @@
-import { useMemo, useState, type ReactNode } from 'react'
+import { useMemo, useState } from 'react'
 import { Screen } from '../components/Screen.tsx'
 import { DishBadges, DishIcon } from '../dishes/DishBits.tsx'
 import { DishDetailSheet } from '../dishes/DishDetailSheet.tsx'
+import { DishEditor } from '../dishes/DishEditor.tsx'
+import { Sheet } from '../components/Sheet.tsx'
 import { useDishes } from '../dishes/dishContext.ts'
 import { filterDishes, NO_FILTER, type DishFilter } from '../dishes/filter.ts'
 import { MEAL_LABELS, TYPE_LABELS } from '../dishes/labels.ts'
@@ -9,6 +11,7 @@ import { DISH_TYPES, MEALS, type Dish, type DishType } from '../dishes/types.ts'
 import { useReadyHousehold } from '../household/householdContext.ts'
 import type { ScriptPref } from '../lib/database.types.ts'
 import { namePair } from '../lib/names.ts'
+import { ToggleChip } from '../stock/fields.tsx'
 
 export function DishesScreen() {
   const { status, dishes, reload } = useDishes()
@@ -16,6 +19,7 @@ export function DishesScreen() {
   const [filter, setFilter] = useState<DishFilter>(NO_FILTER)
   /** The dish whose detail sheet is open. */
   const [openId, setOpenId] = useState<string | null>(null)
+  const [adding, setAdding] = useState(false)
   const shown = useMemo(() => filterDishes(dishes, filter), [dishes, filter])
   const set = (patch: Partial<DishFilter>) => setFilter((f) => ({ ...f, ...patch }))
 
@@ -51,23 +55,23 @@ export function DishesScreen() {
       </label>
 
       <div className="-mx-4 mt-3 flex gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" role="group" aria-label="Show">
-        <Toggle pressed={filter.favourites} onClick={() => set({ favourites: !filter.favourites })}>
+        <ToggleChip pressed={filter.favourites} onClick={() => set({ favourites: !filter.favourites })}>
           Favourites
-        </Toggle>
-        <Toggle pressed={filter.hidden} onClick={() => set({ hidden: !filter.hidden })}>
+        </ToggleChip>
+        <ToggleChip pressed={filter.hidden} onClick={() => set({ hidden: !filter.hidden })}>
           Not suggested
-        </Toggle>
+        </ToggleChip>
         {MEALS.map((m) => (
-          <Toggle key={m} pressed={filter.meal === m} onClick={() => set({ meal: filter.meal === m ? null : m })}>
+          <ToggleChip key={m} pressed={filter.meal === m} onClick={() => set({ meal: filter.meal === m ? null : m })}>
             {MEAL_LABELS[m]}
-          </Toggle>
+          </ToggleChip>
         ))}
       </div>
       <div className="-mx-4 mt-2 flex gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" role="group" aria-label="Type">
         {DISH_TYPES.map((t) => (
-          <Toggle key={t} pressed={filter.type === t} onClick={() => set({ type: filter.type === t ? null : t })}>
+          <ToggleChip key={t} pressed={filter.type === t} onClick={() => set({ type: filter.type === t ? null : t })}>
             {TYPE_LABELS[t]}
-          </Toggle>
+          </ToggleChip>
         ))}
       </div>
 
@@ -97,7 +101,29 @@ export function DishesScreen() {
           </section>
         ))
       )}
-      {openId && <DishDetailSheet dishId={openId} onClose={() => setOpenId(null)} />}
+      {/* Room to scroll the last row clear of the button. */}
+      <div className="h-16" />
+      <div className="pointer-events-none fixed inset-x-0 bottom-[calc(4.5rem+env(safe-area-inset-bottom))] z-40 mx-auto flex max-w-xl justify-end px-4">
+        <button
+          type="button"
+          onClick={() => setAdding(true)}
+          className="pointer-events-auto min-h-12 rounded-full bg-leaf px-5 font-semibold text-bg shadow-lg"
+        >
+          + Add dish
+        </button>
+      </div>
+      {openId && <DishDetailSheet key={openId} dishId={openId} onClose={() => setOpenId(null)} />}
+      {adding && (
+        <Sheet title="New dish" onClose={() => setAdding(false)}>
+          <DishEditor
+            onSaved={(dish) => {
+              setAdding(false)
+              setOpenId(dish.id)
+            }}
+            onCancel={() => setAdding(false)}
+          />
+        </Sheet>
+      )}
     </Screen>
   )
 }
@@ -134,20 +160,5 @@ function DishRow({ dish, pref, onOpen }: { dish: Dish; pref: ScriptPref; onOpen:
         </span>
       </button>
     </li>
-  )
-}
-
-function Toggle({ pressed, onClick, children }: { pressed: boolean; onClick: () => void; children: ReactNode }) {
-  return (
-    <button
-      type="button"
-      aria-pressed={pressed}
-      onClick={onClick}
-      className={`min-h-10 shrink-0 rounded-full border px-3 text-sm font-medium ${
-        pressed ? 'border-leaf bg-leaf-fill text-leaf-strong' : 'border-line bg-surface text-ink-muted'
-      }`}
-    >
-      {children}
-    </button>
   )
 }

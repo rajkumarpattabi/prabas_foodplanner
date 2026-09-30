@@ -7,6 +7,7 @@ import { useStock } from '../stock/stockContext.ts'
 import { formatQuantity } from '../stock/units.ts'
 import { DishBadges, DishIcon } from './DishBits.tsx'
 import { useDishes, type DishPatch } from './dishContext.ts'
+import { DishEditor } from './DishEditor.tsx'
 import { ingredientLines, type Availability } from './ingredients.ts'
 import { MEAL_LABELS, TAG_LABELS, TYPE_LABELS } from './labels.ts'
 import type { Dish } from './types.ts'
@@ -39,10 +40,19 @@ export function DishDetailSheet({ dishId, onClose }: Props) {
   const pref = useReadyHousehold().me.script_pref
   // The dishes opened here, most recent last, for Back.
   const [trail, setTrail] = useState([dishId])
+  const [editing, setEditing] = useState(false)
   const dish = dishesById.get(trail.at(-1)!)
   const previous = trail.length > 1 ? dishesById.get(trail.at(-2)!) : undefined
   if (!dish) return null
   const [first] = namePair(dish, pref)
+
+  if (editing) {
+    return (
+      <Sheet title={`Edit ${first}`} onClose={onClose}>
+        <DishEditor dish={dish} onSaved={() => setEditing(false)} onCancel={() => setEditing(false)} onDeleted={onClose} />
+      </Sheet>
+    )
+  }
 
   return (
     <Sheet title={first} onClose={onClose}>
@@ -52,6 +62,9 @@ export function DishDetailSheet({ dishId, onClose }: Props) {
         </button>
       )}
       <DishDetail key={dish.id} dish={dish} onOpen={(id) => setTrail((t) => [...t, id])} />
+      <button type="button" onClick={() => setEditing(true)} className="mt-4 min-h-12 w-full rounded-xl border border-line font-medium">
+        Edit dish
+      </button>
     </Sheet>
   )
 }

@@ -1,4 +1,4 @@
-import { useId, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { Segmented } from '../components/Segmented.tsx'
 import { Sheet } from '../components/Sheet.tsx'
 import { useToast } from '../components/toastContext.ts'
@@ -8,7 +8,7 @@ import { attribution, relTime } from '../lib/time.ts'
 import { correctEvents, expiryEvents, openEvents, spoiledEvents } from './actions.ts'
 import { BoughtForm } from './AddStockSheet.tsx'
 import type { Batch } from './computeStock.ts'
-import { AmountFields } from './fields.tsx'
+import { AmountFields, Check, TextField } from './fields.tsx'
 import { describeEvent, newestFirst } from './history.ts'
 import { displayUnits, itemForm, itemPatch, reversePatch, type ItemForm } from './itemEdit.ts'
 import { CATEGORY_LABELS, ENTRY_UNIT_LABELS, inputClass, primaryClass } from './labels.ts'
@@ -393,54 +393,5 @@ function EditForm({ item, name, onDone, onRemoved }: { item: Item; name: string;
       </button>
       <BackButton onClick={onDone} />
     </form>
-  )
-}
-
-function TextField({
-  label,
-  hint,
-  value,
-  onChange,
-  lang,
-  inputMode,
-}: {
-  label: string
-  hint?: string
-  value: string
-  onChange: (v: string) => void
-  lang?: string
-  inputMode?: 'decimal' | 'numeric'
-}) {
-  const id = useId()
-  return (
-    <div>
-      <label htmlFor={id} className="text-sm font-medium">
-        {label}
-      </label>
-      <input
-        id={id}
-        value={value}
-        lang={lang}
-        inputMode={inputMode}
-        maxLength={400}
-        aria-describedby={hint ? `${id}-hint` : undefined}
-        onChange={(e) => onChange(e.target.value)}
-        className={`mt-1 ${inputClass}`}
-      />
-      {hint && (
-        <p id={`${id}-hint`} className="mt-1 text-xs text-ink-muted">
-          {hint}
-        </p>
-      )}
-    </div>
-  )
-}
-
-function Check({ label, checked, onChange }: { label: string; checked: boolean; onChange: (v: boolean) => void }) {
-  return (
-    <label className="flex min-h-11 items-center gap-3">
-      <input type="checkbox" checked={checked} onChange={(e) => onChange(e.target.checked)} className="h-5 w-5 accent-leaf" />
-      <span className="text-sm font-medium">{label}</span>
-    </label>
   )
 }
