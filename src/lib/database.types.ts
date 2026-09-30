@@ -1,6 +1,7 @@
 // Types for the Supabase schema, in the shape `supabase gen types` produces.
 // Keep in step with supabase/migrations/. Tables are added here batch by batch.
 
+import type { Dish as DishInterface } from '../dishes/types.ts'
 import type { Item as ItemInterface, StockEvent as StockEventInterface } from '../stock/types.ts'
 
 // supabase-js needs plain object types for rows (interfaces don't fit its table
@@ -8,6 +9,7 @@ import type { Item as ItemInterface, StockEvent as StockEventInterface } from '.
 type Plain<T> = { [K in keyof T]: T[K] }
 type Item = Plain<ItemInterface>
 type StockEvent = Plain<StockEventInterface>
+type Dish = Plain<DishInterface>
 
 type Timestamps = {
   created_by: string | null
@@ -87,6 +89,12 @@ export type Database = {
         Row: StockEvent
         Insert: Partial<StockEvent> & Pick<StockEvent, 'id' | 'household_id' | 'item_id' | 'kind' | 'quantity'>
         Update: never
+        Relationships: []
+      }
+      dishes: {
+        Row: Dish
+        Insert: Partial<Dish> & Pick<Dish, 'household_id' | 'name_ta' | 'name_en' | 'type'>
+        Update: Partial<Omit<Dish, 'id' | 'household_id' | 'catalog_key' | 'created_by' | 'created_at' | 'updated_by' | 'updated_at'>>
         Relationships: []
       }
     }
