@@ -33,7 +33,7 @@ export function renderApp({
     <MemoryRouter initialEntries={[path]}>
       <ThemeProvider>
         <ToastProvider>
-          <Root auth={auth} householdApi={household} backupApi={household.backupApi} sync={sync} drive={drive} />
+          <Root auth={auth} householdApi={household} stockApi={household.stockApi} backupApi={household.backupApi} sync={sync} drive={drive} />
         </ToastProvider>
       </ThemeProvider>
     </MemoryRouter>,

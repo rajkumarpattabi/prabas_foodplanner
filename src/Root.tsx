@@ -18,6 +18,8 @@ import { supabase } from './lib/supabase.ts'
 import { supabaseExecutor } from './offline/executor.ts'
 import { createSync, type Sync } from './offline/setup.ts'
 import { SyncProvider } from './offline/SyncProvider.tsx'
+import { supabaseStockApi, type StockApi } from './stock/api.ts'
+import { StockProvider } from './stock/StockProvider.tsx'
 import { useTheme } from './theme/themeContext.ts'
 
 // One local database and outbox for the app's lifetime.
@@ -30,6 +32,7 @@ const defaultDrive: DriveDeps | null = googleClientId
 interface RootProps {
   auth?: AuthApi
   householdApi?: HouseholdApi
+  stockApi?: StockApi
   backupApi?: BackupApi
   sync?: Sync
   drive?: DriveDeps | null
@@ -39,11 +42,13 @@ interface RootProps {
 export function Root({
   auth = supabase?.auth,
   householdApi,
+  stockApi,
   backupApi,
   sync = defaultSync ?? undefined,
   drive = defaultDrive,
 }: RootProps) {
   const api = useMemo(() => householdApi ?? (supabase ? supabaseHouseholdApi(supabase) : null), [householdApi])
+  const stock = useMemo(() => stockApi ?? (supabase ? supabaseStockApi(supabase) : null), [stockApi])
   const backup = useMemo(() => backupApi ?? (supabase ? supabaseBackupApi(supabase) : null), [backupApi])
   // Nothing from one person's session stays on the device after they log out.
   const onSignedOut = useCallback(async () => {
@@ -51,19 +56,19 @@ export function Root({
     drive?.tokens.forget()
     await sync?.db.clearAll()
   }, [sync, drive])
-  if (!auth || !api || !backup || !sync) return <NotConfigured />
+  if (!auth || !api || !stock || !backup || !sync) return <NotConfigured />
   return (
     <AuthProvider auth={auth} onSignedOut={onSignedOut}>
       <BackupApiContext.Provider value={backup}>
         <DriveDepsContext.Provider value={drive}>
-          <AuthGate api={api} sync={sync} />
+          <AuthGate api={api} stock={stock} sync={sync} />
         </DriveDepsContext.Provider>
       </BackupApiContext.Provider>
     </AuthProvider>
   )
 }
 
-function AuthGate({ api, sync }: { api: HouseholdApi; sync: Sync }) {
+function AuthGate({ api, stock, sync }: { api: HouseholdApi; stock: StockApi; sync: Sync }) {
   const { ready, session } = useAuth()
   if (!ready) return null // The saved session is read from local storage almost instantly.
   if (!session) return <LoginScreen />
@@ -72,13 +77,13 @@ function AuthGate({ api, sync }: { api: HouseholdApi; sync: Sync }) {
     // Keyed by user, so logging in as someone else starts from a clean state.
     <SyncProvider key={userId} sync={sync} userId={userId}>
       <HouseholdProvider api={api} userId={userId}>
-        <HouseholdGate />
+        <HouseholdGate stock={stock} />
       </HouseholdProvider>
     </SyncProvider>
   )
 }
 
-function HouseholdGate() {
+function HouseholdGate({ stock }: { stock: StockApi }) {
   const { status, snapshot } = useHousehold()
   const { setPref } = useTheme()
 
@@ -91,7 +96,11 @@ function HouseholdGate() {
   if (status === 'loading') return null
   if (status === 'error') return <LoadErrorScreen />
   if (!snapshot?.household) return <OnboardingScreen />
-  return <App />
+  return (
+    <StockProvider api={stock} householdId={snapshot.household.id} userId={snapshot.me.user_id}>
+      <App />
+    </StockProvider>
+  )
 }
 
 function NotConfigured() {

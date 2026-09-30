@@ -10,7 +10,8 @@ export type OpResult = { status: 'ok' } | { status: 'retry' } | { status: 'rejec
 
 export type Executor = (op: OutboxOp) => Promise<OpResult>
 
-type NewOp = OutboxOp extends infer O ? (O extends OutboxOp ? Omit<O, 'seq' | 'id' | 'createdAt' | 'attempts'> : never) : never
+/** An op as queued; the outbox adds its id, time and attempt count. */
+export type NewOp = OutboxOp extends infer O ? (O extends OutboxOp ? Omit<O, 'seq' | 'id' | 'createdAt' | 'attempts'> : never) : never
 
 export interface Outbox {
   /** Save a change locally, then try to send it. Resolves once it is safely queued. */

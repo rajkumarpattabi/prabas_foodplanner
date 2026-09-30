@@ -1,4 +1,5 @@
 import Dexie, { type EntityTable } from 'dexie'
+import type { Item, StockEvent } from '../stock/types.ts'
 
 /**
  * A change waiting to be sent to Supabase. Ops are replayed in `seq` order.
@@ -39,6 +40,9 @@ export interface CacheEntry {
 export class PrabasDb extends Dexie {
   outbox!: EntityTable<OutboxOp, 'seq'>
   cache!: EntityTable<CacheEntry, 'key'>
+  /** This household's items and stock events, as last seen (plus changes not yet sent). */
+  items!: EntityTable<Item, 'id'>
+  stock_events!: EntityTable<StockEvent, 'id'>
 
   constructor(name = 'prabas') {
     super(name)
@@ -46,6 +50,10 @@ export class PrabasDb extends Dexie {
     this.version(1).stores({
       outbox: '++seq, userId',
       cache: 'key',
+    })
+    this.version(2).stores({
+      items: 'id, household_id',
+      stock_events: 'id, household_id, item_id',
     })
   }
 
@@ -59,9 +67,8 @@ export class PrabasDb extends Dexie {
 
   /** On log out: nothing from one person's session stays on the device for the next. */
   async clearAll(): Promise<void> {
-    await this.transaction('rw', this.outbox, this.cache, async () => {
-      await this.outbox.clear()
-      await this.cache.clear()
+    await this.transaction('rw', [this.outbox, this.cache, this.items, this.stock_events], async () => {
+      await Promise.all([this.outbox.clear(), this.cache.clear(), this.items.clear(), this.stock_events.clear()])
     })
   }
 }
