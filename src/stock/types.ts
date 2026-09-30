@@ -56,7 +56,8 @@ export type Form = 'whole' | 'opened'
 
 /**
  * One change to stock. Never updated or deleted; current stock is replayed from these.
- * - delta: add (positive) or take (negative) `quantity`
+ * - delta: add (positive) or take (negative) `quantity`. With `batch_id`, it applies to that
+ *   one purchase: used by undo to put back exactly what was taken, or take back what was added.
  * - set: a correction to exactly `quantity`
  * - expiry: change the expiry of purchase `batch_id` to `expires_on`
  * - open: move `quantity` from whole to opened (coconut)

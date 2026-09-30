@@ -17,7 +17,10 @@ export interface Batch {
   addedAt: string
 }
 
-/** Taken out of stock by use or a downward correction; feeds "days left". Spoiled doesn't count. */
+/**
+ * Taken out of stock by use or a downward correction; feeds "days left". Spoiled doesn't count.
+ * An undone use is a negative amount, so the sum stays right.
+ */
 export interface Usage {
   at: string
   amount: number
@@ -90,7 +93,18 @@ export function computeStock(item: ShelfItem, events: readonly StockEvent[]): St
   for (const e of sorted) {
     switch (e.kind) {
       case 'delta':
-        if (e.quantity > 0) add(e, e.form, e.quantity)
+        if (e.batch_id) {
+          // Aimed at one purchase: an undo puts back what was taken (keeping its expiry)
+          // or takes back what was added. Put-back use no longer counts as use.
+          const b = batches.find((x) => x.id === e.batch_id)
+          if (!b) break
+          if (e.quantity > 0) {
+            b.remaining += e.quantity
+            if (e.reason && e.reason !== 'spoiled') usage.push({ at: e.occurred_at, amount: -e.quantity })
+          } else {
+            b.remaining = Math.max(0, b.remaining + e.quantity)
+          }
+        } else if (e.quantity > 0) add(e, e.form, e.quantity)
         else if (e.quantity < 0) {
           const taken = take(e.form, -e.quantity)
           if (e.reason !== 'spoiled' && taken > 0) usage.push({ at: e.occurred_at, amount: taken })
