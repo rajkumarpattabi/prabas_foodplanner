@@ -2,25 +2,21 @@ import { SwipeRow } from '../components/SwipeRow.tsx'
 import type { ScriptPref } from '../lib/database.types.ts'
 import { namePair } from '../lib/names.ts'
 import { formatQuantity } from './units.ts'
-import type { Level } from './urgency.ts'
+import { UrgencyChip } from './UrgencyChip.tsx'
 import type { StockRow } from './view.ts'
-
-const CHIP: Record<Level, string> = {
-  red: 'bg-red-fill text-red',
-  amber: 'bg-turmeric-fill text-turmeric-strong',
-  green: 'bg-leaf-fill text-leaf-strong',
-}
 
 interface Props {
   row: StockRow
   pref: ScriptPref
+  /** Tap the names: the item's detail sheet. */
+  onOpen: () => void
   onPlus: () => void
   onMinus: () => void
   onUsedUp: () => void
 }
 
 /** One item: names in both scripts, how much there is, how urgent, and +/−. Swipe left: used up. */
-export function StockItemRow({ row, pref, onPlus, onMinus, onUsedUp }: Props) {
+export function StockItemRow({ row, pref, onOpen, onPlus, onMinus, onUsedUp }: Props) {
   const { item, stock, urgency } = row
   const [first, second] = namePair(item, pref)
   const step = formatQuantity(item.step, item)
@@ -31,14 +27,14 @@ export function StockItemRow({ row, pref, onPlus, onMinus, onUsedUp }: Props) {
 
   const content = (
     <div className="flex items-center gap-2 px-3 py-2">
-      <div className="min-w-0 flex-1">
-        <p className="truncate font-medium">{first}</p>
-        <p className="truncate text-sm text-ink-muted">{second}</p>
-        <p className="mt-1 flex flex-wrap items-center gap-2 text-sm">
+      <button type="button" onClick={onOpen} className="min-w-0 flex-1 text-left">
+        <span className="block truncate font-medium">{first}</span>
+        <span className="block truncate text-sm text-ink-muted">{second}</span>
+        <span className="mt-1 flex flex-wrap items-center gap-2 text-sm">
           <span>{quantity}</span>
-          <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${CHIP[urgency.level]}`}>{urgency.label}</span>
-        </p>
-      </div>
+          <UrgencyChip level={urgency.level} label={urgency.label} />
+        </span>
+      </button>
       <button
         type="button"
         aria-label={`Remove ${step} of ${first}`}

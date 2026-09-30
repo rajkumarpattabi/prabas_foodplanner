@@ -9,26 +9,13 @@ import { undoEvents } from './actions.ts'
 import { computeStock } from './computeStock.ts'
 import { defaultUnitFor, namesFromQuery, newItem, purchaseDefaults, purchaseEvent, type PurchaseForm } from './purchase.ts'
 import { searchItems } from './search.ts'
+import { AmountFields } from './fields.tsx'
+import { CATEGORY_LABELS, inputClass, primaryClass } from './labels.ts'
 import { useStock } from './stockContext.ts'
-import { CATEGORIES, type BaseUnit, type Category, type EntryUnit, type Item } from './types.ts'
+import { CATEGORIES, type BaseUnit, type Category, type Item } from './types.ts'
 import { entryUnits, formatQuantity } from './units.ts'
 
 const MAX_RESULTS = 8
-
-const CATEGORY_LABELS: Record<Category, string> = {
-  vegetable: 'Vegetable',
-  greens: 'Greens',
-  fruit: 'Fruit',
-  meat: 'Meat',
-  fish: 'Fish',
-  egg: 'Eggs',
-  dairy: 'Dairy',
-  grain: 'Grains and rice',
-  dal: 'Dals',
-  spice: 'Spices',
-  oil: 'Oils',
-  other: 'Other',
-}
 
 const BASE_UNIT_OPTIONS: { value: BaseUnit; label: string }[] = [
   { value: 'g', label: 'g / kg' },
@@ -37,19 +24,6 @@ const BASE_UNIT_OPTIONS: { value: BaseUnit; label: string }[] = [
   { value: 'bunch', label: 'Bunches' },
   { value: 'packet', label: 'Packets' },
 ]
-
-const ENTRY_UNIT_LABELS: Record<EntryUnit, string> = {
-  kg: 'kg',
-  g: 'g',
-  l: 'l',
-  ml: 'ml',
-  piece: 'pieces',
-  bunch: 'bunches',
-  packet: 'packets',
-}
-
-const input = 'min-h-11 w-full rounded-xl border border-line bg-bg px-3'
-const primary = 'min-h-12 w-full rounded-xl bg-leaf font-semibold text-bg disabled:opacity-50'
 
 type Stage = { kind: 'pick' } | { kind: 'new' } | { kind: 'amount'; item: Item }
 
@@ -84,7 +58,7 @@ export function AddStockSheet({ onClose, initialQuery = '', startNew = false }: 
         />
       )}
       {stage.kind === 'amount' && (
-        <AmountForm item={stage.item} onBack={() => setStage({ kind: 'pick' })} onSaved={onClose} />
+        <BoughtForm item={stage.item} onBack={() => setStage({ kind: 'pick' })} onSaved={onClose} />
       )}
     </Sheet>
   )
@@ -123,7 +97,7 @@ function PickItem({
           value={query}
           onChange={(e) => onQuery(e.target.value)}
           placeholder="Search in Tamil or English"
-          className={`mt-1 ${input}`}
+          className={`mt-1 ${inputClass}`}
         />
       </label>
 
@@ -190,7 +164,7 @@ function NewItemForm({ query, onBack, onCreated }: { query: string; onBack: () =
           value={nameTa}
           maxLength={80}
           onChange={(e) => setNameTa(e.target.value)}
-          className={`mt-1 ${input}`}
+          className={`mt-1 ${inputClass}`}
         />
       </label>
       <label className="block">
@@ -200,12 +174,12 @@ function NewItemForm({ query, onBack, onCreated }: { query: string; onBack: () =
           value={nameEn}
           maxLength={80}
           onChange={(e) => setNameEn(e.target.value)}
-          className={`mt-1 ${input}`}
+          className={`mt-1 ${inputClass}`}
         />
       </label>
       <label className="block">
         <span className="text-sm font-medium">Category</span>
-        <select value={category} onChange={(e) => setCategory(e.target.value as Category)} className={`mt-1 ${input}`}>
+        <select value={category} onChange={(e) => setCategory(e.target.value as Category)} className={`mt-1 ${inputClass}`}>
           {CATEGORIES.map((c) => (
             <option key={c} value={c}>
               {CATEGORY_LABELS[c]}
@@ -221,7 +195,7 @@ function NewItemForm({ query, onBack, onCreated }: { query: string; onBack: () =
         <p className="mt-1 text-xs text-ink-muted">This can't be changed later.</p>
       </div>
       <div className="flex flex-col gap-2 pt-2">
-        <button type="submit" disabled={!ready} className={primary}>
+        <button type="submit" disabled={!ready} className={primaryClass}>
           Create item
         </button>
         <button type="button" onClick={onBack} className="min-h-12 rounded-xl font-medium">
@@ -232,13 +206,13 @@ function NewItemForm({ query, onBack, onCreated }: { query: string; onBack: () =
   )
 }
 
-function AmountForm({ item, onBack, onSaved }: { item: Item; onBack: () => void; onSaved: () => void }) {
+/** How much was bought, and when to use it by. With `onBack`, shows the item with a "Change" button. */
+export function BoughtForm({ item, onBack, onSaved }: { item: Item; onBack?: () => void; onSaved: () => void }) {
   const { eventsByItem, record } = useStock()
   const pref = useReadyHousehold().me.script_pref
   const toast = useToast()
   const [form, setForm] = useState<PurchaseForm>(() => purchaseDefaults(item, localDate(new Date())))
   const event = purchaseEvent(item, form)
-  const units = entryUnits(item)
   const [first, second] = namePair(item, pref)
 
   return (
@@ -254,46 +228,35 @@ function AmountForm({ item, onBack, onSaved }: { item: Item; onBack: () => void;
         onSaved()
       }}
     >
-      <div className="flex items-center gap-3 rounded-xl bg-leaf-fill px-3 py-2">
-        <div className="min-w-0 flex-1">
-          <p className="truncate font-medium text-leaf-strong">{first}</p>
-          <p className="truncate text-sm text-leaf">{second}</p>
+      {onBack && (
+        <div className="flex items-center gap-3 rounded-xl bg-leaf-fill px-3 py-2">
+          <div className="min-w-0 flex-1">
+            <p className="truncate font-medium text-leaf-strong">{first}</p>
+            <p className="truncate text-sm text-leaf">{second}</p>
+          </div>
+          <button type="button" onClick={onBack} className="min-h-11 px-2 text-sm font-medium text-leaf-strong">
+            Change
+          </button>
         </div>
-        <button type="button" onClick={onBack} className="min-h-11 px-2 text-sm font-medium text-leaf-strong">
-          Change
-        </button>
-      </div>
-
-      <label className="block">
-        <span className="text-sm font-medium">Amount{units.length === 1 ? ` (${ENTRY_UNIT_LABELS[form.unit]})` : ''}</span>
-        <input
-          data-autofocus
-          inputMode="decimal"
-          value={form.amount}
-          onChange={(e) => setForm({ ...form, amount: e.target.value })}
-          onFocus={(e) => e.target.select()}
-          className={`mt-1 ${input}`}
-        />
-      </label>
-      {units.length > 1 && (
-        <Segmented
-          label="Unit"
-          options={units.map((u) => ({ value: u, label: ENTRY_UNIT_LABELS[u] }))}
-          value={form.unit}
-          onChange={(unit) => setForm({ ...form, unit })}
-        />
       )}
+
+      <AmountFields
+        amount={form.amount}
+        unit={form.unit}
+        units={entryUnits(item)}
+        onChange={(next) => setForm({ ...form, ...next })}
+      />
       <label className="block">
         <span className="text-sm font-medium">{item.shelf_life_days == null ? 'Use by (optional)' : 'Use by'}</span>
         <input
           type="date"
           value={form.expiresOn}
           onChange={(e) => setForm({ ...form, expiresOn: e.target.value })}
-          className={`mt-1 ${input}`}
+          className={`mt-1 ${inputClass}`}
         />
       </label>
 
-      <button type="submit" disabled={!event} className={primary}>
+      <button type="submit" disabled={!event} className={primaryClass}>
         {event ? `Add ${formatQuantity(event.quantity, item)}` : 'Enter an amount'}
       </button>
     </form>

@@ -1,28 +1,29 @@
-import { useCallback, useMemo, useState, type ReactNode } from 'react'
+import { useMemo, useState, type ReactNode } from 'react'
 import { Screen } from '../components/Screen.tsx'
-import { useToast } from '../components/toastContext.ts'
 import { useReadyHousehold } from '../household/householdContext.ts'
 import { namePair } from '../lib/names.ts'
 import { AddStockSheet } from '../stock/AddStockSheet.tsx'
-import { minusEvents, plusEvents, undoEvents, usedUpEvents } from '../stock/actions.ts'
-import { computeStock } from '../stock/computeStock.ts'
+import { minusEvents, plusEvents, usedUpEvents } from '../stock/actions.ts'
+import { ItemDetailSheet } from '../stock/ItemDetailSheet.tsx'
 import { searchItems } from '../stock/search.ts'
 import { StockItemRow } from '../stock/StockItemRow.tsx'
-import { useStock, type NewStockEvent } from '../stock/stockContext.ts'
-import { formatQuantity } from '../stock/units.ts'
+import { useStock } from '../stock/stockContext.ts'
+import { useStockAction } from '../stock/useStockAction.ts'
 import { sections, stockRows, type StockRow } from '../stock/view.ts'
 
 const MAX_RESULTS = 20
 
 export function StockScreen() {
-  const { status, items, eventsByItem, record, reload } = useStock()
+  const { status, items, eventsByItem, reload } = useStock()
   const { me } = useReadyHousehold()
-  const toast = useToast()
+  const act = useStockAction()
   const pref = me.script_pref
   const [query, setQuery] = useState('')
   const [showFine, setShowFine] = useState(false)
   /** The Add stock sheet, when open, and the search it starts with. */
   const [adding, setAdding] = useState<{ query: string; startNew: boolean } | null>(null)
+  /** The item whose detail sheet is open. */
+  const [openId, setOpenId] = useState<string | null>(null)
 
   const rows = useMemo(() => stockRows(items, eventsByItem), [items, eventsByItem])
   const grouped = useMemo(() => sections(rows), [rows])
@@ -36,19 +37,6 @@ export function StockScreen() {
       .map((i) => byId.get(i.id)!)
   }, [rows, query])
 
-  /** Apply at once, and offer an exact undo. */
-  const act = useCallback(
-    (row: StockRow, events: NewStockEvent[], message: (total: string) => string) => {
-      if (!events.length) return
-      const { item, events: before } = row
-      const added = record(events)
-      const undo = undoEvents(item, before, added)
-      const after = computeStock(item, [...before, ...added]).total
-      toast(message(formatQuantity(after, item)), { undo: () => void record(undo) })
-    },
-    [record, toast],
-  )
-
   const renderRow = (row: StockRow) => {
     const [name] = namePair(row.item, pref)
     return (
@@ -56,9 +44,10 @@ export function StockScreen() {
         key={row.item.id}
         row={row}
         pref={pref}
-        onPlus={() => act(row, plusEvents(row.item), (t) => `${name}: ${t}`)}
-        onMinus={() => act(row, minusEvents(row.item, row.stock), (t) => `${name}: ${t}`)}
-        onUsedUp={() => act(row, usedUpEvents(row.item, row.stock), () => `${name} used up`)}
+        onOpen={() => setOpenId(row.item.id)}
+        onPlus={() => act(row.item, plusEvents(row.item), (t) => `${name}: ${t}`)}
+        onMinus={() => act(row.item, minusEvents(row.item, row.stock), (t) => `${name}: ${t}`)}
+        onUsedUp={() => act(row.item, usedUpEvents(row.item, row.stock), () => `${name} used up`)}
       />
     )
   }
@@ -141,6 +130,7 @@ export function StockScreen() {
           + Add stock
         </button>
       </div>
+      {openId && <ItemDetailSheet itemId={openId} onClose={() => setOpenId(null)} />}
       {adding && <AddStockSheet initialQuery={adding.query} startNew={adding.startNew} onClose={() => setAdding(null)} />}
     </Screen>
   )

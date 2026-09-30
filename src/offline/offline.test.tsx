@@ -60,11 +60,13 @@ describe('offline-first app', () => {
   test('logging out clears the data saved on this device', async () => {
     const { sync } = renderApp({ path: '/settings' })
     expect(await screen.findByText('K7M-4QP')).toBeTruthy()
-    await waitFor(async () => expect(await sync.db.cache.count()).toBe(1))
+    await waitFor(async () => expect(await sync.db.cache.get('household:user-1')).toBeTruthy())
+    await waitFor(async () => expect(await sync.db.items.count()).toBeGreaterThan(0))
 
     fireEvent.click(screen.getByRole('button', { name: 'Log out' }))
     expect(await screen.findByLabelText('Email')).toBeTruthy()
     await waitFor(async () => expect(await sync.db.cache.count()).toBe(0))
+    expect(await sync.db.items.count()).toBe(0)
   })
 })
 
