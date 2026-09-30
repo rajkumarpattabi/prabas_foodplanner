@@ -3,6 +3,7 @@ import { Screen } from '../components/Screen.tsx'
 import { useToast } from '../components/toastContext.ts'
 import { useReadyHousehold } from '../household/householdContext.ts'
 import { namePair } from '../lib/names.ts'
+import { AddStockSheet } from '../stock/AddStockSheet.tsx'
 import { minusEvents, plusEvents, undoEvents, usedUpEvents } from '../stock/actions.ts'
 import { computeStock } from '../stock/computeStock.ts'
 import { searchItems } from '../stock/search.ts'
@@ -20,6 +21,8 @@ export function StockScreen() {
   const pref = me.script_pref
   const [query, setQuery] = useState('')
   const [showFine, setShowFine] = useState(false)
+  /** The Add stock sheet, when open, and the search it starts with. */
+  const [adding, setAdding] = useState<{ query: string; startNew: boolean } | null>(null)
 
   const rows = useMemo(() => stockRows(items, eventsByItem), [items, eventsByItem])
   const grouped = useMemo(() => sections(rows), [rows])
@@ -95,11 +98,16 @@ export function StockScreen() {
         results.length ? (
           <List title="Results">{results.map(renderRow)}</List>
         ) : (
-          <p className="mt-6 text-center text-ink-muted">No items match "{query.trim()}".</p>
+          <div className="mt-6 text-center">
+            <p className="text-ink-muted">No items match "{query.trim()}".</p>
+            <button type="button" onClick={() => setAdding({ query, startNew: true })} className="mt-2 min-h-11 px-3 font-medium text-leaf">
+              Add it as a new item
+            </button>
+          </div>
         )
       ) : nothingShown ? (
         <p className="mt-8 rounded-2xl border border-dashed border-line p-6 text-center text-ink-muted">
-          Nothing in stock yet. Search for an item and tap + to add it.
+          Nothing in stock yet. Tap Add stock to add what you have.
         </p>
       ) : (
         <>
@@ -121,6 +129,19 @@ export function StockScreen() {
           )}
         </>
       )}
+
+      {/* Room to scroll the last row clear of the button. */}
+      <div className="h-16" />
+      <div className="pointer-events-none fixed inset-x-0 bottom-[calc(4.5rem+env(safe-area-inset-bottom))] z-40 mx-auto flex max-w-xl justify-end px-4">
+        <button
+          type="button"
+          onClick={() => setAdding({ query: '', startNew: false })}
+          className="pointer-events-auto min-h-12 rounded-full bg-leaf px-5 font-semibold text-bg shadow-lg"
+        >
+          + Add stock
+        </button>
+      </div>
+      {adding && <AddStockSheet initialQuery={adding.query} startNew={adding.startNew} onClose={() => setAdding(null)} />}
     </Screen>
   )
 }
