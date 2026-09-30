@@ -56,7 +56,7 @@ describe('stock on this phone', () => {
   test('loads the household items from the server', async () => {
     const { stock, ready } = renderStock()
     await ready()
-    expect(stock().items.map((i) => i.name_en).sort()).toEqual(['Coconut', 'Ladies finger', 'Rice'])
+    expect(stock().items.map((i) => i.name_en).sort()).toEqual(['Coconut', 'Egg', 'Ladies finger', 'Rice'])
   })
 
   test('a change shows at once and is saved with who made it', async () => {

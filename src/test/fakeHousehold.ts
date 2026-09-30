@@ -5,6 +5,9 @@ import type { Row } from '../backup/format.ts'
 import type { OutboxOp } from '../offline/db.ts'
 import type { OpResult } from '../offline/outbox.ts'
 import { normaliseJoinCode } from '../household/joinCode.ts'
+import { DishError, type DishApi } from '../dishes/api.ts'
+import type { Dish } from '../dishes/types.ts'
+import type { TableChange } from '../offline/useTableSync.ts'
 import { StockError, type RemoteChange, type StockApi } from '../stock/api.ts'
 import type { Item, StockEvent } from '../stock/types.ts'
 
@@ -47,6 +50,56 @@ function starterItems(householdId: string): Item[] {
       opened_shelf_life_days: 3,
     }),
     item('rice', 'அரிசி', 'Rice', { category: 'grain', display_unit: 'kg', shelf_life_days: null, is_staple: true, step: 1000 }),
+    item('egg', 'முட்டை', 'Egg', { category: 'egg', unit: 'piece', display_unit: 'piece', shelf_life_days: 14, step: 1 }),
+  ]
+}
+
+/** A few catalogue dishes: pongal with its ranked sides, and an egg dish. */
+function starterDishes(householdId: string): Dish[] {
+  const id = (key: string) => `${householdId}:dish:${key}`
+  const dish = (key: string, name_ta: string, name_en: string, extra: Partial<Dish>): Dish => ({
+    id: id(key),
+    household_id: householdId,
+    catalog_key: key,
+    name_ta,
+    name_en,
+    aliases: [],
+    type: 'tiffin',
+    meals: ['breakfast'],
+    is_veg: true,
+    tags: [],
+    ingredients: [],
+    side_ids: [],
+    prep_plan: null,
+    is_favourite: false,
+    is_kids_favourite: false,
+    dont_suggest: false,
+    notes: null,
+    created_by: null,
+    created_at: T0,
+    updated_by: null,
+    updated_at: T0,
+    ...extra,
+  })
+  return [
+    dish('ven_pongal', 'வெண் பொங்கல்', 'Ven pongal', {
+      aliases: ['pongal'],
+      ingredients: [{ item_id: `${householdId}:rice`, quantity: 400 }],
+      side_ids: [id('kathirikkai_sambar'), id('thengai_chutney')],
+    }),
+    dish('kathirikkai_sambar', 'கத்தரிக்காய் சாம்பார்', 'Brinjal sambar', { type: 'sambar', meals: ['breakfast', 'lunch'], tags: ['legume'] }),
+    dish('thengai_chutney', 'தேங்காய் சட்னி', 'Coconut chutney', {
+      type: 'chutney',
+      meals: ['breakfast', 'dinner'],
+      ingredients: [{ item_id: `${householdId}:coconut`, quantity: 1 }],
+    }),
+    dish('muttai_kuzhambu', 'முட்டைக் குழம்பு', 'Egg kuzhambu', {
+      type: 'nonveg_gravy',
+      meals: ['lunch', 'dinner'],
+      is_veg: false,
+      tags: ['protein'],
+      ingredients: [{ item_id: `${householdId}:egg`, quantity: 8 }],
+    }),
   ]
 }
 
@@ -91,6 +144,13 @@ export function fakeHouseholdApi({ withHousehold = false, offline = false }: Opt
   let events: StockEvent[] = []
   const stockListeners = new Set<(change: RemoteChange) => void>()
   const tell = (change: RemoteChange) => stockListeners.forEach((l) => l(structuredClone(change)))
+  let dishes: Dish[] = []
+  const dishListeners = new Set<(change: TableChange) => void>()
+  const tellDish = (change: TableChange) => dishListeners.forEach((l) => l(structuredClone(change)))
+  const seed = (hid: string) => {
+    items = starterItems(hid)
+    dishes = starterDishes(hid)
+  }
 
   const makeHousehold = (id: string, name: string, code: string, by: string): Household => ({
     id,
@@ -107,7 +167,7 @@ export function fakeHouseholdApi({ withHousehold = false, offline = false }: Opt
   if (withHousehold) {
     household = makeHousehold('hh-1', 'Prabas home', 'K7M4QP', me)
     members.push({ userId: me, role: 'owner' }, { userId: 'user-2', role: 'member' })
-    items = starterItems('hh-1')
+    seed('hh-1')
   }
 
   const write = async () => {
@@ -128,7 +188,7 @@ export function fakeHouseholdApi({ withHousehold = false, offline = false }: Opt
       if (household) throw new HouseholdError("You're already in a household.")
       household = makeHousehold('hh-1', name, 'K7M4QP', me)
       members.push({ userId: me, role: 'owner' })
-      items = starterItems('hh-1')
+      seed('hh-1')
     }),
     joinHousehold: vi.fn(async (code: string) => {
       await write()
@@ -138,7 +198,7 @@ export function fakeHouseholdApi({ withHousehold = false, offline = false }: Opt
       }
       household = makeHousehold(other.id, other.name, other.join_code, 'user-2')
       members.push({ userId: 'user-2', role: 'owner' }, { userId: me, role: 'member' })
-      items = starterItems(other.id)
+      seed(other.id)
     }),
     rotateJoinCode: vi.fn(async () => {
       await write()
@@ -161,6 +221,56 @@ export function fakeHouseholdApi({ withHousehold = false, offline = false }: Opt
       return () => void stockListeners.delete(onChange)
     }),
   } satisfies StockApi
+
+  /** Dishes, with the same rules as their RLS policies. */
+  const dishApi = {
+    load: vi.fn(async (householdId: string) => {
+      if (net.offline) throw new DishError('offline')
+      return household?.id === householdId ? structuredClone(dishes) : []
+    }),
+    subscribe: vi.fn((_householdId: string, onChange: (change: TableChange) => void) => {
+      dishListeners.add(onChange)
+      return () => void dishListeners.delete(onChange)
+    }),
+  } satisfies DishApi
+
+  /** Deleting a dish, like the database: gone, and out of every other dish's sides (the trigger). */
+  const deleteDish = (id: string) => {
+    if (!dishes.some((d) => d.id === id)) return
+    dishes = dishes.filter((d) => d.id !== id)
+    tellDish({ table: 'dishes', deletedId: id })
+    for (const d of dishes.filter((x) => x.side_ids.includes(id))) {
+      const next = { ...d, side_ids: d.side_ids.filter((s) => s !== id) }
+      dishes = dishes.map((x) => (x.id === d.id ? next : x))
+      tellDish({ table: 'dishes', row: next })
+    }
+  }
+
+  const executeDish = (op: OutboxOp): OpResult => {
+    const stamp = { updated_by: me, updated_at: new Date().toISOString() }
+    if (op.kind === 'insert') {
+      const row = op.row as unknown as Dish
+      if (row.household_id !== household?.id || row.created_by !== me) return { status: 'reject', message: 'row-level security' }
+      if (dishes.some((d) => d.id === row.id)) return { status: 'ok' }
+      const created_at = new Date().toISOString()
+      const dish = { ...row, created_at, updated_at: created_at }
+      dishes = [...dishes, dish]
+      tellDish({ table: 'dishes', row: dish })
+      return { status: 'ok' }
+    }
+    const current = dishes.find((d) => d.id === op.match.id && d.household_id === household?.id)
+    if (!current) return { status: 'ok' } // No matching row: nothing changes.
+    if (op.kind === 'delete') {
+      deleteDish(current.id)
+      return { status: 'ok' }
+    }
+    const patch = op.patch as Partial<Dish>
+    if (patch.side_ids?.includes(current.id)) return { status: 'reject', message: 'check constraint' }
+    const dish = { ...current, ...patch, ...stamp }
+    dishes = dishes.map((d) => (d.id === dish.id ? dish : d))
+    tellDish({ table: 'dishes', row: dish })
+    return { status: 'ok' }
+  }
 
   /** A queued item or stock event reaching the "server". */
   const insertStock = (op: Extract<OutboxOp, { kind: 'insert' }>): OpResult => {
@@ -186,6 +296,7 @@ export function fakeHouseholdApi({ withHousehold = false, offline = false }: Opt
   const execute = vi.fn(async (op: OutboxOp): Promise<OpResult> => {
     if (net.offline) return { status: 'retry' }
     if (op.kind === 'insert' && (op.table === 'items' || op.table === 'stock_events')) return insertStock(op)
+    if (op.table === 'dishes') return executeDish(op)
     if (op.kind !== 'update') return { status: 'reject', message: 'not supported in the fake' }
     const stamp = { updated_by: me, updated_at: new Date().toISOString() }
     if (op.table === 'items') {
@@ -246,6 +357,7 @@ export function fakeHouseholdApi({ withHousehold = false, offline = false }: Opt
     ...(api satisfies HouseholdApi),
     backupApi,
     stockApi,
+    dishApi,
     execute,
     /** Read the "server" side, to check what was actually saved. */
     server: {
@@ -260,6 +372,15 @@ export function fakeHouseholdApi({ withHousehold = false, offline = false }: Opt
         if (live && !net.offline) tell({ table: 'stock_events', row })
         return row
       },
+      dishes: () => dishes,
+      /** The other phone edits a dish. */
+      otherPhoneEditsDish(id: string, patch: Partial<Dish>) {
+        const dish = { ...dishes.find((d) => d.id === id)!, ...patch, updated_by: 'user-2', updated_at: new Date().toISOString() }
+        dishes = dishes.map((d) => (d.id === id ? dish : d))
+        if (!net.offline) tellDish({ table: 'dishes', row: dish })
+      },
+      /** The other phone deletes a dish. */
+      otherPhoneDeletesDish: (id: string) => deleteDish(id),
       /** The other phone edits an item. */
       otherPhoneEditsItem(id: string, patch: Partial<Item>) {
         const item = { ...items.find((i) => i.id === id)!, ...patch, updated_by: 'user-2', updated_at: new Date().toISOString() }

@@ -96,7 +96,7 @@ describe('file backup', () => {
     household.server.otherPhoneRecords(stockEvent('bought', 1000))
     const { sync } = renderApp({ path: '/settings', household })
     const exported = await exportJson()
-    expect(exported.tables.items).toHaveLength(3)
+    expect(exported.tables.items).toHaveLength(4)
     expect(exported.tables.stock_events).toHaveLength(1)
 
     // After the backup: okra is used up and renamed on the other phone.
