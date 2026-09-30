@@ -5,7 +5,7 @@ import { renderApp } from '../test/renderApp.tsx'
 
 const PONGAL_TA = 'வெண் பொங்கல்'
 const rowOf = (name: string) => screen.getByText(name).closest('li')!
-const names = () => within(screen.getByRole('main')).getAllByRole('listitem').map((li) => li.querySelector('p')!.textContent)
+const names = () => within(screen.getByRole('main')).getAllByRole('listitem').map((li) => li.querySelector('.font-medium')!.textContent)
 
 describe('Dishes screen', () => {
   test('lists the library by type, in the chosen script first, with icons and labels', async () => {

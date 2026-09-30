@@ -1,6 +1,7 @@
 import { useMemo, useState, type ReactNode } from 'react'
 import { Screen } from '../components/Screen.tsx'
 import { DishBadges, DishIcon } from '../dishes/DishBits.tsx'
+import { DishDetailSheet } from '../dishes/DishDetailSheet.tsx'
 import { useDishes } from '../dishes/dishContext.ts'
 import { filterDishes, NO_FILTER, type DishFilter } from '../dishes/filter.ts'
 import { MEAL_LABELS, TYPE_LABELS } from '../dishes/labels.ts'
@@ -13,6 +14,8 @@ export function DishesScreen() {
   const { status, dishes, reload } = useDishes()
   const pref = useReadyHousehold().me.script_pref
   const [filter, setFilter] = useState<DishFilter>(NO_FILTER)
+  /** The dish whose detail sheet is open. */
+  const [openId, setOpenId] = useState<string | null>(null)
   const shown = useMemo(() => filterDishes(dishes, filter), [dishes, filter])
   const set = (patch: Partial<DishFilter>) => setFilter((f) => ({ ...f, ...patch }))
 
@@ -85,15 +88,16 @@ export function DishesScreen() {
           {searching ? `No dishes match "${filter.query.trim()}".` : 'No dishes match these filters.'}
         </p>
       ) : searching ? (
-        <DishList dishes={shown} pref={pref} />
+        <DishList dishes={shown} pref={pref} onOpen={setOpenId} />
       ) : (
         groupByType(shown).map(([type, list]) => (
           <section key={type} className="mt-5">
             <h2 className="mb-2 text-sm font-semibold text-ink-muted">{TYPE_LABELS[type]}</h2>
-            <DishList dishes={list} pref={pref} />
+            <DishList dishes={list} pref={pref} onOpen={setOpenId} />
           </section>
         ))
       )}
+      {openId && <DishDetailSheet dishId={openId} onClose={() => setOpenId(null)} />}
     </Screen>
   )
 }
@@ -105,28 +109,30 @@ function groupByType(dishes: readonly Dish[]): [DishType, Dish[]][] {
   return [...groups]
 }
 
-function DishList({ dishes, pref }: { dishes: readonly Dish[]; pref: ScriptPref }) {
+function DishList({ dishes, pref, onOpen }: { dishes: readonly Dish[]; pref: ScriptPref; onOpen: (id: string) => void }) {
   return (
     <ul className="divide-y divide-line rounded-xl border border-line bg-surface">
       {dishes.map((d) => (
-        <DishRow key={d.id} dish={d} pref={pref} />
+        <DishRow key={d.id} dish={d} pref={pref} onOpen={() => onOpen(d.id)} />
       ))}
     </ul>
   )
 }
 
-function DishRow({ dish, pref }: { dish: Dish; pref: ScriptPref }) {
+function DishRow({ dish, pref, onOpen }: { dish: Dish; pref: ScriptPref; onOpen: () => void }) {
   const [first, second] = namePair(dish, pref)
   return (
-    <li className="flex items-center gap-3 px-3 py-2.5">
-      <DishIcon type={dish.type} />
-      <div className="min-w-0 flex-1">
-        <p className="truncate font-medium">{first}</p>
-        <p className="truncate text-sm text-ink-muted">{second}</p>
-        <div className="mt-1">
-          <DishBadges dish={dish} />
-        </div>
-      </div>
+    <li>
+      <button type="button" onClick={onOpen} className="flex w-full items-center gap-3 px-3 py-2.5 text-left">
+        <DishIcon type={dish.type} />
+        <span className="min-w-0 flex-1">
+          <span className="block truncate font-medium">{first}</span>
+          <span className="block truncate text-sm text-ink-muted">{second}</span>
+          <span className="mt-1 block">
+            <DishBadges dish={dish} />
+          </span>
+        </span>
+      </button>
     </li>
   )
 }
