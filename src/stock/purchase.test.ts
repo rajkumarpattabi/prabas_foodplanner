@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest'
-import { namesFromQuery, newItem, parseAmount, purchaseDefaults, purchaseEvent } from './purchase.ts'
+import { amountToBase, namesFromQuery, newItem, parseAmount, purchaseDefaults, purchaseEvent } from './purchase.ts'
 
 const okra = { id: 'okra', unit: 'g', display_unit: 'kg', piece_weight_g: null, step: 250, shelf_life_days: 5 } as const
 const rice = { id: 'rice', unit: 'g', display_unit: 'kg', piece_weight_g: null, step: 1000, shelf_life_days: null } as const
@@ -35,6 +35,13 @@ describe('the purchase saved', () => {
       expect(purchaseEvent(okra, { amount, unit: 'kg', expiresOn: '' })).toBeNull()
     }
     expect(parseAmount('1,5')).toBe(1.5)
+  })
+
+  test('amounts for corrections may be zero', () => {
+    expect(amountToBase('0', 'kg', okra)).toBeNull()
+    expect(amountToBase('0', 'kg', okra, { allowZero: true })).toBe(0)
+    expect(amountToBase('0,3', 'kg', okra)).toBe(300)
+    expect(amountToBase('', 'kg', okra, { allowZero: true })).toBeNull()
   })
 })
 

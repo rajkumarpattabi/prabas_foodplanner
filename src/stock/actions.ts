@@ -30,6 +30,28 @@ export function usedUpEvents(item: ActionItem, stock: Stock): NewStockEvent[] {
     .map((form) => ({ item_id: item.id, kind: 'set', quantity: 0, reason: 'used', form }))
 }
 
+/** "Correct to…": exactly this much (in the base unit) of one form. */
+export function correctEvents(item: ActionItem, quantity: number, form: Form = 'whole'): NewStockEvent[] {
+  return [{ item_id: item.id, kind: 'set', quantity: Math.max(0, quantity), reason: 'correction', form }]
+}
+
+/** "Spoiled": thrown away, not eaten, so it doesn't count toward days left. Never more than there is. */
+export function spoiledEvents(item: ActionItem, stock: Stock, quantity: number, form: Form = 'whole'): NewStockEvent[] {
+  const have = form === 'opened' ? stock.opened : stock.whole
+  const q = Math.min(quantity, have)
+  return q > EPSILON ? [{ item_id: item.id, kind: 'delta', quantity: -q, reason: 'spoiled', form }] : []
+}
+
+/** "Open one": a whole coconut (or packet) becomes an opened one, with the shorter opened shelf life. */
+export function openEvents(item: ActionItem, stock: Stock): NewStockEvent[] {
+  return item.has_opened_form && stock.whole >= 1 ? [{ item_id: item.id, kind: 'open', quantity: 1 }] : []
+}
+
+/** A new use-by date for one purchase. */
+export function expiryEvents(item: ActionItem, batchId: string, expiresOn: string): NewStockEvent[] {
+  return [{ item_id: item.id, kind: 'expiry', quantity: 0, batch_id: batchId, expires_on: expiresOn }]
+}
+
 /** Why the stock put back by an undo had been taken: decides whether it had counted as use. */
 function takenFor(e: StockEvent): StockReason | null {
   if (e.kind === 'open') return null // Opening a coconut isn't using it.
@@ -49,9 +71,13 @@ export function undoEvents(item: ShelfItem, before: readonly StockEvent[], added
   const reason = takenFor(added[0])
   const out: NewStockEvent[] = []
   for (const b of was) {
-    const taken = b.remaining - (now.find((x) => x.id === b.id)?.remaining ?? 0)
+    const after = now.find((x) => x.id === b.id)
+    const taken = b.remaining - (after?.remaining ?? 0)
     if (taken > EPSILON) {
       out.push({ item_id: item.id, kind: 'delta', quantity: taken, batch_id: b.id, form: b.form, reason, note: 'undo' })
+    }
+    if (after && b.expiresOn && after.expiresOn !== b.expiresOn) {
+      out.push({ item_id: item.id, kind: 'expiry', quantity: 0, batch_id: b.id, expires_on: b.expiresOn, note: 'undo' })
     }
   }
   for (const b of now) {

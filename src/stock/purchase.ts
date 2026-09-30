@@ -93,6 +93,19 @@ export function parseAmount(text: string): number | null {
   return text.trim() && Number.isFinite(n) && n > 0 ? n : null
 }
 
+/** An entered amount in the item's stored unit, or null. Zero is allowed only when asked (for "Correct to 0"). */
+export function amountToBase(
+  text: string,
+  unit: EntryUnit,
+  item: Pick<Item, 'unit' | 'piece_weight_g'>,
+  { allowZero = false } = {},
+): number | null {
+  const t = text.trim().replace(',', '.')
+  const n = t ? Number(t) : NaN
+  if (!Number.isFinite(n) || n < 0 || (n === 0 && !allowZero)) return null
+  return toBase(n, unit, item)
+}
+
 /**
  * The purchase to record, or null when the amount isn't usable. The expiry date is
  * always stored, so a later change to the item's shelf life doesn't move it.

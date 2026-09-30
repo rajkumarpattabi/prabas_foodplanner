@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest'
-import { minusEvents, plusEvents, undoEvents, usedUpEvents } from './actions.ts'
+import { expiryEvents, minusEvents, openEvents, plusEvents, spoiledEvents, undoEvents, usedUpEvents } from './actions.ts'
 import { computeStock } from './computeStock.ts'
 import type { NewStockEvent } from './stockContext.ts'
 import type { StockEvent } from './types.ts'
@@ -100,6 +100,25 @@ describe('exact undo', () => {
   test('spoiled stock put back still never counted as use', () => {
     const before = bought(tomato, 500)
     expectExactUndo(tomato, before, [{ item_id: 'tomato', kind: 'delta', quantity: -500, reason: 'spoiled' }])
+  })
+
+  test('a changed use-by date', () => {
+    const before = bought(tomato, 500, '2026-09-25')
+    const { undo } = expectExactUndo(tomato, before, expiryEvents(tomato, before[0].id, '2026-09-22'))
+    expect(undo).toMatchObject([{ kind: 'expiry', expires_on: '2026-09-25' }])
+  })
+
+  test('spoiled, from the detail sheet', () => {
+    const before = bought(tomato, 500)
+    expectExactUndo(tomato, before, spoiledEvents(tomato, computeStock(tomato, before), 200))
+  })
+
+  test('open one, from the detail sheet', () => {
+    const before = bought(coconut, 2)
+    const open = openEvents(coconut, computeStock(coconut, before))
+    expect(open).toHaveLength(1)
+    expectExactUndo(coconut, before, open)
+    expect(openEvents(coconut, computeStock(coconut, []))).toEqual([])
   })
 
   test("the other phone's changes in between are left alone", () => {
