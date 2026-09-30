@@ -2,6 +2,7 @@ import { useCallback } from 'react'
 import { HouseholdError } from '../household/api.ts'
 import { useReadyHousehold } from '../household/householdContext.ts'
 import { useSync } from '../offline/syncContext.ts'
+import { useStock } from '../stock/stockContext.ts'
 import { useBackupApi } from './backupContext.ts'
 import { buildBackup, type Backup } from './format.ts'
 import { BACKED_UP_TABLES } from './tables.ts'
@@ -11,6 +12,7 @@ export function useBackup() {
   const api = useBackupApi()
   const { db } = useSync()
   const { me, household, reload } = useReadyHousehold()
+  const { reload: reloadStock } = useStock()
   const isBackupOwner = household.backup_owner_id === me.user_id
 
   const makeBackup = useCallback(
@@ -25,13 +27,14 @@ export function useBackup() {
         // Changes still waiting to be sent would land on top of the restored data.
         await db.outbox.where('userId').equals(me.user_id).delete()
         await api.restore(backup.tables)
-        await reload()
+        // Live updates don't carry a restore's deletions, so read everything again.
+        await Promise.all([reload(), reloadStock()])
         return null
       } catch (e) {
         return e instanceof HouseholdError ? e.message : 'Something went wrong. Try again.'
       }
     },
-    [api, db, me.user_id, reload],
+    [api, db, me.user_id, reload, reloadStock],
   )
 
   return { makeBackup, restore, isBackupOwner, householdId: household.id }

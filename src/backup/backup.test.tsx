@@ -25,6 +25,23 @@ async function exportJson(): Promise<Backup> {
   return JSON.parse(await file.blob.text()) as Backup
 }
 
+const OKRA = 'hh-1:okra'
+
+function stockEvent(reason: 'bought' | 'used', quantity: number) {
+  return {
+    id: `ev-${reason}`,
+    item_id: OKRA,
+    kind: 'delta' as const,
+    quantity,
+    reason,
+    batch_id: null,
+    expires_on: null,
+    form: 'whole' as const,
+    note: null,
+    occurred_at: new Date().toISOString(),
+  }
+}
+
 async function importFile(content: string) {
   const input = screen.getByLabelText('Backup file')
   fireEvent.change(input, { target: { files: [new File([content], 'backup.json', { type: 'application/json' })] } })
@@ -74,6 +91,44 @@ describe('file backup', () => {
     await waitFor(() => expect((screen.getByLabelText('Your name') as HTMLInputElement).value).toBe('raj'))
   })
 
+  test('stock round trip: items and every event come back, on the server and on this phone', async () => {
+    const household = fakeHouseholdApi({ withHousehold: true })
+    household.server.otherPhoneRecords(stockEvent('bought', 1000))
+    const { sync } = renderApp({ path: '/settings', household })
+    const exported = await exportJson()
+    expect(exported.tables.items).toHaveLength(3)
+    expect(exported.tables.stock_events).toHaveLength(1)
+
+    // After the backup: okra is used up and renamed on the other phone.
+    household.server.otherPhoneRecords(stockEvent('used', -1000))
+    household.server.otherPhoneEditsItem(OKRA, { name_en: 'Okra' })
+    await waitFor(async () => expect(await sync.db.stock_events.count()).toBe(2))
+
+    await importFile(JSON.stringify(exported))
+    fireEvent.click(await screen.findByRole('button', { name: 'Replace data' }))
+    expect(await screen.findByText('Backup restored')).toBeTruthy()
+
+    expect(household.server.events().map((e) => e.id)).toEqual(['ev-bought'])
+    expect(household.server.items().find((i) => i.id === OKRA)?.name_en).toBe('Ladies finger')
+    // Live updates can't carry a restore's deletions: the phone reads everything again.
+    await waitFor(async () => expect((await sync.db.stock_events.toArray()).map((e) => e.id)).toEqual(['ev-bought']))
+    expect((await sync.db.items.get(OKRA))?.name_en).toBe('Ladies finger')
+  })
+
+  test('a backup from before stock existed leaves stock as it is', async () => {
+    const household = fakeHouseholdApi({ withHousehold: true })
+    household.server.otherPhoneRecords(stockEvent('bought', 1000))
+    renderApp({ path: '/settings', household })
+    const exported = await exportJson()
+    const { items: _i, stock_events: _e, ...batch1Tables } = exported.tables
+
+    household.server.otherPhoneRecords(stockEvent('used', -250))
+    await importFile(JSON.stringify({ ...exported, tables: batch1Tables }))
+    fireEvent.click(await screen.findByRole('button', { name: 'Replace data' }))
+    expect(await screen.findByText('Backup restored')).toBeTruthy()
+    expect(household.server.events()).toHaveLength(2)
+  })
+
   test('cancel leaves everything as it was', async () => {
     const household = fakeHouseholdApi({ withHousehold: true })
     renderApp({ path: '/settings', household })
@@ -117,6 +172,7 @@ describe('file backup', () => {
     const text = await file.blob.text()
     expect(text).toContain('People\nname,dish_names,joined\n')
     expect(text).toContain('raj,ta_first,')
+    expect(text).toContain('\n\nStock\ndate,item_ta,item_en,what,change,set_to,unit,reason,by\n')
   })
 
   test('offline export explains itself', async () => {

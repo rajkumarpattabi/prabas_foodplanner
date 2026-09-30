@@ -1,6 +1,9 @@
 // What goes into a backup. Later batches add their tables here (and a matching
 // restore line in the restore_snapshot SQL function), so backups grow with the app.
 
+import { STOCK_CSV_COLUMNS, stockCsvRows } from '../stock/stockCsv.ts'
+import type { Row } from './format.ts'
+
 export interface BackedUpTable {
   name: string
   /**
@@ -10,11 +13,15 @@ export interface BackedUpTable {
   scope: 'household' | 'people'
 }
 
-export const BACKED_UP_TABLES: readonly BackedUpTable[] = [{ name: 'profiles', scope: 'people' }]
+export const BACKED_UP_TABLES: readonly BackedUpTable[] = [
+  { name: 'profiles', scope: 'people' },
+  { name: 'items', scope: 'household' },
+  { name: 'stock_events', scope: 'household' },
+]
 
 /**
  * The spreadsheet-friendly CSV export: one section per entry, oldest first.
- * Stock (Batch 2) and meal history (Batch 4) join this list when they exist.
+ * Meal history (Batch 4) joins this list when it exists.
  */
 export interface CsvSection {
   title: string
@@ -23,6 +30,8 @@ export interface CsvSection {
   columns: readonly { key: string; label: string }[]
   /** Oldest first by this column. */
   sortBy: string
+  /** For a section built from several tables: its rows. Otherwise the table's rows are used as they are. */
+  rows?: (tables: Record<string, Row[]>) => Row[]
 }
 
 export const CSV_SECTIONS: readonly CsvSection[] = [
@@ -35,5 +44,12 @@ export const CSV_SECTIONS: readonly CsvSection[] = [
       { key: 'created_at', label: 'joined' },
     ],
     sortBy: 'created_at',
+  },
+  {
+    title: 'Stock',
+    table: 'stock_events',
+    columns: STOCK_CSV_COLUMNS,
+    sortBy: 'occurred_at',
+    rows: stockCsvRows,
   },
 ]

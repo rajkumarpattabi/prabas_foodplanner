@@ -10,6 +10,8 @@ export interface BackupApi {
   restore(tables: Record<string, Row[]>): Promise<void>
 }
 
+const PAGE = 1000
+
 export function supabaseBackupApi(sb: Supabase): BackupApi {
   // Tables arrive batch by batch, so they are named by string here.
   const from = (table: string) => sb.from(table as never) as unknown as ReturnType<Supabase['from']>
@@ -19,11 +21,26 @@ export function supabaseBackupApi(sb: Supabase): BackupApi {
       const out: Record<string, Row[]> = {}
       try {
         for (const t of tables) {
-          // RLS limits "people" tables (profiles) to me and my co-members.
-          const q = t.scope === 'household' ? from(t.name).select('*').eq('household_id' as never, householdId as never) : from(t.name).select('*')
-          const { data, error } = await q
-          if (error) throw new HouseholdError(describeError(error))
-          out[t.name] = (data ?? []) as Row[]
+          if (t.scope === 'people') {
+            // RLS limits these (profiles) to me and my co-members: a handful of rows.
+            const { data, error } = await from(t.name).select('*')
+            if (error) throw new HouseholdError(describeError(error))
+            out[t.name] = (data ?? []) as Row[]
+            continue
+          }
+          // Supabase caps each response (1000 rows by default), and stock events pass
+          // that within a year, so read in pages by id until one comes back empty.
+          const rows: Row[] = []
+          for (let after: string | null = null; ; ) {
+            let q = from(t.name).select('*').eq('household_id' as never, householdId as never).order('id' as never).limit(PAGE)
+            if (after) q = q.gt('id' as never, after as never)
+            const { data, error } = await q
+            if (error) throw new HouseholdError(describeError(error))
+            if (!data?.length) break
+            rows.push(...(data as Row[]))
+            after = String((data.at(-1) as Row).id)
+          }
+          out[t.name] = rows
         }
       } catch (e) {
         if (e instanceof HouseholdError) throw e

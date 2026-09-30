@@ -210,7 +210,12 @@ export function fakeHouseholdApi({ withHousehold = false, offline = false }: Opt
     fetchTables: vi.fn(async () => {
       if (net.offline) throw offlineError()
       const memberIds = new Set(members.map((m) => m.userId))
-      return { profiles: [...profiles.values()].filter((p) => memberIds.has(p.user_id)).map((p) => ({ ...p })) }
+      const mine = <T extends { household_id: string }>(rows: T[]) => structuredClone(rows.filter((r) => r.household_id === household?.id))
+      return {
+        profiles: [...profiles.values()].filter((p) => memberIds.has(p.user_id)).map((p) => ({ ...p })),
+        items: mine(items) as unknown as Row[],
+        stock_events: mine(events) as unknown as Row[],
+      }
     }),
     restore: vi.fn(async (tables: Record<string, Row[]>) => {
       if (net.offline) throw offlineError()
@@ -225,6 +230,14 @@ export function fakeHouseholdApi({ withHousehold = false, offline = false }: Opt
           script_pref: row.script_pref ?? current.script_pref,
           theme_pref: row.theme_pref ?? current.theme_pref,
         })
+      }
+      // Items and their events are replaced together; a backup from before Batch 2
+      // has neither and leaves them alone. household_id is forced to this household.
+      if ('items' in tables) {
+        const hid = household.id
+        const others = <T extends { household_id: string }>(rows: T[]) => rows.filter((r) => r.household_id !== hid)
+        items = [...others(items), ...(tables.items as unknown as Item[]).map((r) => ({ ...r, household_id: hid }))]
+        events = [...others(events), ...((tables.stock_events ?? []) as unknown as StockEvent[]).map((r) => ({ ...r, household_id: hid }))]
       }
     }),
   } satisfies BackupApi

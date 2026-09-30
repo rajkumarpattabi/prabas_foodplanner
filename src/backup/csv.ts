@@ -12,7 +12,8 @@ export function csvCell(v: unknown): string {
  */
 export function backupToCsv(backup: Backup, sections: readonly CsvSection[]): string {
   const blocks = sections.map((section) => {
-    const rows = [...(backup.tables[section.table] ?? [])].sort((a, b) =>
+    const source = section.rows ? section.rows(backup.tables) : (backup.tables[section.table] ?? [])
+    const rows = [...source].sort((a, b) =>
       String(a[section.sortBy] ?? '').localeCompare(String(b[section.sortBy] ?? '')),
     )
     return [
