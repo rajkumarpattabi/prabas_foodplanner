@@ -1,8 +1,6 @@
 import { describe, expect, test } from 'vitest'
-import type { OutboxOp } from '../offline/db.ts'
-import { toEvent, toItem } from './api.ts'
-import { compareEvents } from './computeStock.ts'
-import { mergeRows } from './merge.ts'
+import type { OutboxOp } from './db.ts'
+import { mergeRows, withPending } from './merge.ts'
 
 type Row = { id: string; name: string }
 
@@ -92,45 +90,53 @@ describe('mergeRows', () => {
   })
 })
 
-describe('rows from Postgres', () => {
-  const event = {
-    id: 'e1',
-    household_id: 'h',
-    item_id: 'i',
-    kind: 'delta',
-    quantity: '500',
-    reason: 'bought',
-    batch_id: null,
-    expires_on: null,
-    form: 'whole',
-    note: null,
-    occurred_at: '2026-09-29T10:00:00.123456+00:00',
-    created_at: '2026-09-29T10:00:01+00:00',
-    created_by: 'u1',
-  }
-
-  test('numbers are numbers and times share one format, so events sort the same on every phone', () => {
-    const fromServer = toEvent(event)
-    expect(fromServer.quantity).toBe(500)
-    expect(fromServer.occurred_at).toBe('2026-09-29T10:00:00.123Z')
-    // Made on the phone a moment later: "…00.5Z" sorts after "…00.123456+00:00" only once normalised.
-    const mine = { ...fromServer, id: 'e2', occurred_at: '2026-09-29T10:00:00.500Z' }
-    expect([mine, fromServer].sort(compareEvents).map((e) => e.id)).toEqual(['e1', 'e2'])
+describe('deletes', () => {
+  const del = (table: string, id: string): OutboxOp => ({
+    seq: 3,
+    id: `op-del-${id}`,
+    kind: 'delete',
+    table,
+    match: { id },
+    userId: 'u1',
+    createdAt: '',
+    attempts: 0,
   })
 
-  test('item numbers and missing aliases', () => {
-    const item = toItem({
-      id: 'i',
-      step: '250',
-      low_threshold: '100',
-      piece_weight_g: null,
-      shelf_life_days: 5,
-      opened_shelf_life_days: null,
-      aliases: null,
-      created_at: '2026-09-29T10:00:00+00:00',
-      updated_at: '2026-09-29T10:00:00+00:00',
+  test('a delete still waiting in the outbox keeps the row gone', () => {
+    const next = mergeRows<Row>({
+      table: 'dishes',
+      server: [{ id: 'a', name: 'still on the server' }, { id: 'b', name: 'b' }],
+      local: [{ id: 'b', name: 'b' }],
+      pending: [del('dishes', 'a'), del('items', 'b')],
+      recent: none,
+      fetchedFrom: 0,
     })
-    expect(item).toMatchObject({ step: 250, low_threshold: 100, piece_weight_g: null, aliases: [] })
-    expect(item.created_at).toBe('2026-09-29T10:00:00.000Z')
+    expect(byId(next)).toEqual({ b: 'b' })
+  })
+
+  test('a delete made after the server read began keeps the row gone, even once sent', () => {
+    const next = mergeRows<Row>({
+      table: 'dishes',
+      server: [{ id: 'a', name: 'read before the delete' }, { id: 'old', name: 'deleted long ago, then re-added' }],
+      local: [],
+      pending: [],
+      recent: none,
+      deleted: new Map([
+        ['a', 2_000],
+        ['old', 500],
+      ]),
+      fetchedFrom: 1_000,
+    })
+    expect(byId(next)).toEqual({ old: 'deleted long ago, then re-added' })
+  })
+
+  test('a live update for a row queued here is patched, or dropped if deleted here', () => {
+    expect(withPending('items', { id: 'a', name: 'server', step: 500 }, [update('items', 'a', { name: 'mine' })])).toEqual({
+      id: 'a',
+      name: 'mine',
+      step: 500,
+    })
+    expect(withPending('dishes', { id: 'a', name: 'server' }, [del('dishes', 'a')])).toBeNull()
+    expect(withPending('dishes', { id: 'a', name: 'server' }, [del('dishes', 'z')])).toEqual({ id: 'a', name: 'server' })
   })
 })

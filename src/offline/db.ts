@@ -1,4 +1,5 @@
 import Dexie, { type EntityTable } from 'dexie'
+import type { Dish } from '../dishes/types.ts'
 import type { Item, StockEvent } from '../stock/types.ts'
 
 /**
@@ -6,6 +7,7 @@ import type { Item, StockEvent } from '../stock/types.ts'
  * - update: patch the row(s) matching `match` (for example, rename the household)
  * - insert: add a row with a client-made id; replaying twice is harmless (used for
  *   event rows such as stock_events from Batch 2)
+ * - delete: remove the row(s) matching `match` (a dish); replaying twice is harmless
  */
 export type OutboxOp =
   | {
@@ -15,6 +17,16 @@ export type OutboxOp =
       table: string
       match: Record<string, string>
       patch: Record<string, unknown>
+      userId: string
+      createdAt: string
+      attempts: number
+    }
+  | {
+      seq?: number
+      id: string
+      kind: 'delete'
+      table: string
+      match: Record<string, string>
       userId: string
       createdAt: string
       attempts: number
@@ -43,6 +55,7 @@ export class PrabasDb extends Dexie {
   /** This household's items and stock events, as last seen (plus changes not yet sent). */
   items!: EntityTable<Item, 'id'>
   stock_events!: EntityTable<StockEvent, 'id'>
+  dishes!: EntityTable<Dish, 'id'>
 
   constructor(name = 'prabas') {
     super(name)
@@ -54,6 +67,9 @@ export class PrabasDb extends Dexie {
     this.version(2).stores({
       items: 'id, household_id',
       stock_events: 'id, household_id, item_id',
+    })
+    this.version(3).stores({
+      dishes: 'id, household_id',
     })
   }
 
@@ -67,8 +83,9 @@ export class PrabasDb extends Dexie {
 
   /** On log out: nothing from one person's session stays on the device for the next. */
   async clearAll(): Promise<void> {
-    await this.transaction('rw', [this.outbox, this.cache, this.items, this.stock_events], async () => {
-      await Promise.all([this.outbox.clear(), this.cache.clear(), this.items.clear(), this.stock_events.clear()])
+    const tables = [this.outbox, this.cache, this.items, this.stock_events, this.dishes]
+    await this.transaction('rw', tables, async () => {
+      await Promise.all(tables.map((t) => t.clear()))
     })
   }
 }

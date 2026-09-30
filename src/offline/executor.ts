@@ -28,6 +28,13 @@ export function supabaseExecutor(sb: Supabase): Executor {
       const { error, status } = await q
       return classify(error, status)
     }
+    if (op.kind === 'delete') {
+      // Deleting what's already gone deletes nothing, so a replay is harmless too.
+      let q = from(op.table).delete()
+      for (const [col, val] of Object.entries(op.match)) q = q.eq(col as never, val as never)
+      const { error, status } = await q
+      return classify(error, status)
+    }
     // Same id twice is ignored, so a replay after a lost response is harmless.
     const { error, status } = await from(op.table).upsert(op.row as never, { onConflict: 'id', ignoreDuplicates: true })
     return classify(error, status)

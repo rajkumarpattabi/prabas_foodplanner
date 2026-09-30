@@ -1,3 +1,4 @@
+import { readAll } from '../lib/readAll.ts'
 import type { Supabase } from '../lib/supabase.ts'
 import type { Item, StockEvent } from './types.ts'
 
@@ -55,24 +56,8 @@ export function toEvent(row: Record<string, unknown>): StockEvent {
   }
 }
 
-// Supabase caps each response (1000 rows by default), so read in pages until one
-// comes back empty. Paging by id stays correct while rows are being added.
-const PAGE = 1000
-
 export function supabaseStockApi(sb: Supabase): StockApi {
-  async function all(table: StockTable, householdId: string): Promise<Record<string, unknown>[]> {
-    const rows: Record<string, unknown>[] = []
-    let after: string | null = null
-    for (;;) {
-      let q = sb.from(table).select('*').eq('household_id', householdId).order('id').limit(PAGE)
-      if (after) q = q.gt('id', after)
-      const { data, error } = await q
-      if (error) throw new StockError(error.message)
-      if (!data.length) return rows
-      rows.push(...(data as unknown as Record<string, unknown>[]))
-      after = data.at(-1)!.id
-    }
-  }
+  const all = (table: StockTable, householdId: string) => readAll(sb, table, householdId, (e) => new StockError(e.message))
 
   return {
     async load(householdId) {
