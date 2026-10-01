@@ -93,7 +93,9 @@ Colourful but calm. Colour always carries meaning. Never rely on colour alone; p
 - [x] Batch 3: Dish library (done 2026-10-01: household dish library from a reviewed 120-dish
       catalogue with ranked sides, veg/non-veg worked out from ingredients, Dishes screen, detail sheet,
       add/edit/delete, dishes in backups. Migrations 0006–0007 applied. Tested on both phones.)
-- [ ] Batch 4: Plan and cook
+- [ ] Batch 4: Plan and cook (in progress: steps 1–8 of 9 done: plan logic and scoring, migration
+      0008 applied, meal sync, Plan tab, plan/change/remove, Cook this with leftovers, Ready to eat,
+      cooking history, backup and CSV Meals. Next: step 9, check on both phones.)
 - [ ] Batch 5: Tamil calendar rules
 - [ ] Batch 6: Prepared items and multi-day batches
 - [ ] Batch 7: Shopping list

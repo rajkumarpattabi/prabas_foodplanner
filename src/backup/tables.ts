@@ -1,6 +1,7 @@
 // What goes into a backup. Later batches add their tables here (and a matching
 // restore line in the restore_snapshot SQL function), so backups grow with the app.
 
+import { MEAL_CSV_COLUMNS, mealCsvRows } from '../plan/mealCsv.ts'
 import { STOCK_CSV_COLUMNS, stockCsvRows } from '../stock/stockCsv.ts'
 import type { Row } from './format.ts'
 
@@ -18,11 +19,13 @@ export const BACKED_UP_TABLES: readonly BackedUpTable[] = [
   { name: 'items', scope: 'household' },
   { name: 'stock_events', scope: 'household' },
   { name: 'dishes', scope: 'household' },
+  { name: 'meals', scope: 'household' },
+  { name: 'leftovers', scope: 'household' },
 ]
 
 /**
  * The spreadsheet-friendly CSV export: one section per entry, oldest first.
- * Meal history (Batch 4) joins this list when it exists.
+ * Stock and meal history, oldest first.
  */
 export interface CsvSection {
   title: string
@@ -52,5 +55,12 @@ export const CSV_SECTIONS: readonly CsvSection[] = [
     columns: STOCK_CSV_COLUMNS,
     sortBy: 'occurred_at',
     rows: stockCsvRows,
+  },
+  {
+    title: 'Meals',
+    table: 'meals',
+    columns: MEAL_CSV_COLUMNS,
+    sortBy: 'sort',
+    rows: mealCsvRows,
   },
 ]

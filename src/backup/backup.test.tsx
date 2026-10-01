@@ -168,6 +168,49 @@ describe('file backup', () => {
     expect(household.server.dishes()).toHaveLength(3)
   })
 
+  test('meal round trip: meals and leftovers come back, on the server and on this phone', async () => {
+    const household = fakeHouseholdApi({ withHousehold: true })
+    const cooked = household.server.otherPhonePutsMeal({
+      date: '2026-09-28',
+      meal: 'lunch',
+      dish_ids: [PONGAL, SAMBAR],
+      dish_names: [],
+      status: 'cooked',
+      cooked_by: 'user-2',
+      cooked_at: '2026-09-28T07:00:00.000Z',
+    })
+    household.server.otherPhoneAddsLeftover({ dish_id: SAMBAR, name_ta: 'சாம்பார்', name_en: 'Sambar', servings: 2, expires_on: '2026-09-29', meal_id: cooked.id })
+    const { sync } = renderApp({ path: '/settings', household })
+    const exported = await exportJson()
+    expect(exported.tables.meals).toHaveLength(1)
+    expect(exported.tables.leftovers).toHaveLength(1)
+
+    // After the backup: tomorrow is planned on the other phone.
+    household.server.otherPhonePutsMeal({ date: '2026-10-05', meal: 'dinner', dish_ids: [PONGAL] })
+    await waitFor(async () => expect(await sync.db.meals.count()).toBe(2))
+
+    await importFile(JSON.stringify(exported))
+    fireEvent.click(await screen.findByRole('button', { name: 'Replace data' }))
+    expect(await screen.findByText('Backup restored')).toBeTruthy()
+
+    expect(household.server.meals().map((m) => m.id)).toEqual(['hh-1:2026-09-28:lunch'])
+    expect(household.server.leftovers()).toMatchObject([{ meal_id: 'hh-1:2026-09-28:lunch', dish_id: SAMBAR, servings: 2 }])
+    await waitFor(async () => expect((await sync.db.meals.toArray()).map((m) => m.id)).toEqual(['hh-1:2026-09-28:lunch']))
+    expect(await sync.db.leftovers.count()).toBe(1)
+  })
+
+  test('a backup from before meals existed leaves meals as they are', async () => {
+    const household = fakeHouseholdApi({ withHousehold: true })
+    renderApp({ path: '/settings', household })
+    const exported = await exportJson()
+    const { meals: _m, leftovers: _l, ...batch3Tables } = exported.tables
+    household.server.otherPhonePutsMeal({ date: '2026-10-05', meal: 'dinner', dish_ids: [PONGAL] })
+    await importFile(JSON.stringify({ ...exported, tables: batch3Tables }))
+    fireEvent.click(await screen.findByRole('button', { name: 'Replace data' }))
+    expect(await screen.findByText('Backup restored')).toBeTruthy()
+    expect(household.server.meals()).toHaveLength(1)
+  })
+
   test('cancel leaves everything as it was', async () => {
     const household = fakeHouseholdApi({ withHousehold: true })
     renderApp({ path: '/settings', household })
@@ -212,6 +255,7 @@ describe('file backup', () => {
     expect(text).toContain('People\nname,dish_names,joined\n')
     expect(text).toContain('raj,ta_first,')
     expect(text).toContain('\n\nStock\ndate,item_ta,item_en,what,change,set_to,unit,reason,by\n')
+    expect(text).toContain('\n\nMeals\ndate,meal,dishes_ta,dishes_en,status,planned_by,cooked_by\n')
   })
 
   test('offline export explains itself', async () => {

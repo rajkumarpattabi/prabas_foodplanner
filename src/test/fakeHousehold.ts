@@ -380,6 +380,8 @@ export function fakeHouseholdApi({ withHousehold = false, offline = false }: Opt
         items: mine(items) as unknown as Row[],
         stock_events: mine(events) as unknown as Row[],
         dishes: mine(dishes) as unknown as Row[],
+        meals: mine(meals) as unknown as Row[],
+        leftovers: mine(leftovers) as unknown as Row[],
       }
     }),
     restore: vi.fn(async (tables: Record<string, Row[]>) => {
@@ -410,6 +412,24 @@ export function fakeHouseholdApi({ withHousehold = false, offline = false }: Opt
         dishes = [
           ...dishes.filter((d) => d.household_id !== hid),
           ...(tables.dishes as unknown as Dish[]).map((r) => ({ ...r, household_id: hid })),
+        ]
+      }
+      // A backup made before Batch 4 has no meals. Meal ids carry the household, so
+      // they're re-keyed; a leftover keeps links only to a meal and dish that are here.
+      if ('meals' in tables) {
+        const hid = household.id
+        const rekey = (id: string) => `${hid}:${id.split(':')[1]}:${id.split(':')[2]}`
+        meals = [
+          ...meals.filter((m) => m.household_id !== hid),
+          ...(tables.meals as unknown as MealRecord[]).map((m) => ({ ...m, household_id: hid, id: `${hid}:${m.date}:${m.meal}` })),
+        ]
+        leftovers = [
+          ...leftovers.filter((l) => l.household_id !== hid),
+          ...((tables.leftovers ?? []) as unknown as Leftover[]).map((l) => {
+            const meal_id = l.meal_id && meals.some((m) => m.id === rekey(l.meal_id!)) ? rekey(l.meal_id) : null
+            const dish_id = l.dish_id && dishes.some((d) => d.id === l.dish_id && d.household_id === hid) ? l.dish_id : null
+            return { ...l, household_id: hid, meal_id, dish_id }
+          }),
         ]
       }
     }),
