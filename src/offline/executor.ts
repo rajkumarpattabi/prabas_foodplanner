@@ -35,8 +35,8 @@ export function supabaseExecutor(sb: Supabase): Executor {
       const { error, status } = await q
       return classify(error, status)
     }
-    // Same id twice is ignored, so a replay after a lost response is harmless.
-    const { error, status } = await from(op.table).upsert(op.row as never, { onConflict: 'id', ignoreDuplicates: true })
+    // Same key twice is ignored, so a replay after a lost response is harmless.
+    const { error, status } = await from(op.table).upsert(op.row as never, { onConflict: op.onConflict ?? 'id', ignoreDuplicates: true })
     return classify(error, status)
   }
 }

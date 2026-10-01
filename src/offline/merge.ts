@@ -44,7 +44,7 @@ export function mergeRows<T extends { id: string }>({
 
   for (const op of pending) {
     if (op.table !== table) continue
-    if (op.kind === 'insert' && !next.has(op.row.id)) {
+    if (op.kind === 'insert' && op.row.id && !next.has(op.row.id)) {
       const mine = localById.get(op.row.id)
       if (mine) next.set(mine.id, mine)
     }

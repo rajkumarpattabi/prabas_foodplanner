@@ -28,6 +28,8 @@ import { supabaseBatchApi, type BatchApi } from './prepared/api.ts'
 import { BatchProvider } from './prepared/BatchProvider.tsx'
 import { supabaseShoppingApi, type ShoppingApi } from './shop/api.ts'
 import { ShoppingProvider } from './shop/ShoppingProvider.tsx'
+import { supabaseReminderApi, type ReminderApi } from './reminders/api.ts'
+import { ReminderProvider } from './reminders/ReminderProvider.tsx'
 import { supabaseStockApi, type StockApi } from './stock/api.ts'
 import { StockProvider } from './stock/StockProvider.tsx'
 import { useTheme } from './theme/themeContext.ts'
@@ -48,6 +50,7 @@ interface RootProps {
   calendarApi?: CalendarApi
   batchApi?: BatchApi
   shoppingApi?: ShoppingApi
+  reminderApi?: ReminderApi
   backupApi?: BackupApi
   sync?: Sync
   drive?: DriveDeps | null
@@ -63,6 +66,7 @@ export function Root({
   calendarApi,
   batchApi,
   shoppingApi,
+  reminderApi,
   backupApi,
   sync = defaultSync ?? undefined,
   drive = defaultDrive,
@@ -74,6 +78,7 @@ export function Root({
   const calApi = useMemo(() => calendarApi ?? (supabase ? supabaseCalendarApi(supabase) : null), [calendarApi])
   const batchesApi = useMemo(() => batchApi ?? (supabase ? supabaseBatchApi(supabase) : null), [batchApi])
   const shopApi = useMemo(() => shoppingApi ?? (supabase ? supabaseShoppingApi(supabase) : null), [shoppingApi])
+  const remindApi = useMemo(() => reminderApi ?? (supabase ? supabaseReminderApi(supabase) : null), [reminderApi])
   const backup = useMemo(() => backupApi ?? (supabase ? supabaseBackupApi(supabase) : null), [backupApi])
   // Nothing from one person's session stays on the device after they log out.
   const onSignedOut = useCallback(async () => {
@@ -81,12 +86,12 @@ export function Root({
     drive?.tokens.forget()
     await sync?.db.clearAll()
   }, [sync, drive])
-  if (!auth || !api || !stock || !dishesApi || !mealsApi || !calApi || !batchesApi || !shopApi || !backup || !sync) return <NotConfigured />
+  if (!auth || !api || !stock || !dishesApi || !mealsApi || !calApi || !batchesApi || !shopApi || !remindApi || !backup || !sync) return <NotConfigured />
   return (
     <AuthProvider auth={auth} onSignedOut={onSignedOut}>
       <BackupApiContext.Provider value={backup}>
         <DriveDepsContext.Provider value={drive}>
-          <AuthGate api={api} apis={{ stock, dishes: dishesApi, meals: mealsApi, calendar: calApi, batches: batchesApi, shopping: shopApi }} sync={sync} />
+          <AuthGate api={api} apis={{ stock, dishes: dishesApi, meals: mealsApi, calendar: calApi, batches: batchesApi, shopping: shopApi, reminders: remindApi }} sync={sync} />
         </DriveDepsContext.Provider>
       </BackupApiContext.Provider>
     </AuthProvider>
@@ -101,6 +106,7 @@ interface DataApis {
   calendar: CalendarApi
   batches: BatchApi
   shopping: ShoppingApi
+  reminders: ReminderApi
 }
 
 function AuthGate({ api, apis, sync }: { api: HouseholdApi; apis: DataApis; sync: Sync }) {
@@ -138,7 +144,9 @@ function HouseholdGate({ apis }: { apis: DataApis }) {
           <CalendarProvider api={apis.calendar} householdId={snapshot.household.id} userId={snapshot.me.user_id}>
             <BatchProvider api={apis.batches} householdId={snapshot.household.id} userId={snapshot.me.user_id}>
               <ShoppingProvider api={apis.shopping} householdId={snapshot.household.id} userId={snapshot.me.user_id}>
-                <App />
+                <ReminderProvider api={apis.reminders} householdId={snapshot.household.id} userId={snapshot.me.user_id}>
+                  <App />
+                </ReminderProvider>
               </ShoppingProvider>
             </BatchProvider>
           </CalendarProvider>

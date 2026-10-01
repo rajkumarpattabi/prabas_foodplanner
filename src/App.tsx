@@ -1,5 +1,6 @@
 import { Navigate, Route, Routes } from 'react-router'
 import { DriveAutoBackup } from './backup/drive/DriveAutoBackup.tsx'
+import { ReminderSync } from './reminders/ReminderSync.tsx'
 import { SyncStatus } from './components/SyncStatus.tsx'
 import { TabBar } from './components/TabBar.tsx'
 import { CalendarScreen } from './screens/CalendarScreen.tsx'
@@ -14,6 +15,7 @@ export default function App() {
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       <DriveAutoBackup />
+      <ReminderSync />
       <SyncStatus />
       <main className="flex-1 overflow-y-auto">
         <Routes>

@@ -15,6 +15,8 @@ import { BatchError, type BatchApi } from '../prepared/api.ts'
 import type { Batch, BatchEvent } from '../prepared/types.ts'
 import { ShoppingError, type ShoppingApi } from '../shop/api.ts'
 import type { ShoppingItem } from '../shop/types.ts'
+import { ReminderError, type ReminderApi } from '../reminders/api.ts'
+import type { Reminder, ReminderSettings } from '../reminders/types.ts'
 import type { Leftover, MealRecord } from '../plan/types.ts'
 import { StockError, type RemoteChange, type StockApi } from '../stock/api.ts'
 import type { Item, StockEvent } from '../stock/types.ts'
@@ -170,6 +172,10 @@ export function fakeHouseholdApi({ withHousehold = false, offline = false }: Opt
   let shopping: ShoppingItem[] = []
   const shoppingListeners = new Set<(change: TableChange) => void>()
   const tellShopping = (change: TableChange) => shoppingListeners.forEach((l) => l(structuredClone(change)))
+  let reminders: Reminder[] = []
+  const settings = new Map<string, ReminderSettings>()
+  const reminderListeners = new Set<(change: TableChange) => void>()
+  const tellReminder = (change: TableChange) => reminderListeners.forEach((l) => l(structuredClone(change)))
   const seed = (hid: string) => {
     items = starterItems(hid)
     dishes = starterDishes(hid)
@@ -382,6 +388,59 @@ export function fakeHouseholdApi({ withHousehold = false, offline = false }: Opt
     return { status: 'ok' }
   }
 
+  /** Reminders and reminder settings, with the same rules as the database. */
+  const reminderApi = {
+    load: vi.fn(async (householdId: string) => {
+      if (net.offline) throw new ReminderError('offline')
+      return structuredClone(reminders.filter((r) => r.household_id === householdId))
+    }),
+    loadSettings: vi.fn(async (userId: string) => {
+      if (net.offline) throw new ReminderError('offline')
+      return structuredClone(settings.get(userId) ?? null)
+    }),
+    subscribe: vi.fn((_householdId: string, onChange: (change: TableChange) => void) => {
+      reminderListeners.add(onChange)
+      return () => void reminderListeners.delete(onChange)
+    }),
+  } satisfies ReminderApi
+
+  const executeReminder = (op: OutboxOp): OpResult => {
+    const now = new Date().toISOString()
+    if (op.table === 'reminder_settings') {
+      if (op.kind === 'insert') {
+        const row = op.row as unknown as ReminderSettings & { created_by: string }
+        if (row.user_id !== me || row.household_id !== household?.id) return { status: 'reject', message: 'row-level security' }
+        if (!settings.has(me)) settings.set(me, { ...row, created_at: now, updated_at: now })
+        return { status: 'ok' }
+      }
+      if (op.kind !== 'update' || op.match.user_id !== me) return { status: 'reject', message: 'permission denied' }
+      const current = settings.get(me)
+      if (current) settings.set(me, { ...current, ...(op.patch as Partial<ReminderSettings>), updated_at: now })
+      return { status: 'ok' }
+    }
+    if (op.kind === 'insert') {
+      const row = op.row as unknown as Reminder & { created_by: string }
+      if (row.household_id !== household?.id || row.created_by !== me) return { status: 'reject', message: 'row-level security' }
+      if (!row.id.startsWith(`${row.household_id}:`)) return { status: 'reject', message: 'check constraint' }
+      if (reminders.some((r) => r.id === row.id)) return { status: 'ok' }
+      const added = { ...row, created_at: now, updated_at: now }
+      reminders = [...reminders, added]
+      tellReminder({ table: 'reminders', row: added })
+      return { status: 'ok' }
+    }
+    const current = reminders.find((r) => r.id === op.match.id && r.household_id === household?.id)
+    if (!current) return { status: 'ok' }
+    if (op.kind === 'delete') {
+      reminders = reminders.filter((r) => r.id !== current.id)
+      tellReminder({ table: 'reminders', deletedId: current.id })
+      return { status: 'ok' }
+    }
+    const next = { ...current, ...(op.patch as Partial<Reminder>), updated_by: me, updated_at: now }
+    reminders = reminders.map((r) => (r.id === next.id ? next : r))
+    tellReminder({ table: 'reminders', row: next })
+    return { status: 'ok' }
+  }
+
   const executeCalendar = (op: OutboxOp): OpResult => {
     const valid = (d: Partial<CalendarDay>) => !d.end_date || (d.type === 'puratasi' && d.end_date >= (d.date ?? ''))
     if (op.kind === 'insert') {
@@ -500,6 +559,7 @@ export function fakeHouseholdApi({ withHousehold = false, offline = false }: Opt
     if (op.table === 'calendar_days') return executeCalendar(op)
     if (op.table === 'batches' || op.table === 'batch_events') return executeBatch(op)
     if (op.table === 'shopping_items') return executeShopping(op)
+    if (op.table === 'reminders' || op.table === 'reminder_settings') return executeReminder(op)
     if (op.kind !== 'update') return { status: 'reject', message: 'not supported in the fake' }
     const stamp = { updated_by: me, updated_at: new Date().toISOString() }
     if (op.table === 'items') {
@@ -630,6 +690,7 @@ export function fakeHouseholdApi({ withHousehold = false, offline = false }: Opt
     calendarApi,
     batchApi,
     shoppingApi,
+    reminderApi,
     execute,
     /** Read the "server" side, to check what was actually saved. */
     server: {
@@ -656,6 +717,8 @@ export function fakeHouseholdApi({ withHousehold = false, offline = false }: Opt
         return row
       },
       shopping: () => shopping,
+      reminders: () => reminders,
+      reminderSettings: (userId = me) => settings.get(userId),
       /** The other phone (user-2) adds to the list, or ticks a line off; this phone hears about it live. */
       otherPhoneShops(row: Pick<ShoppingItem, 'item_id'> & Partial<ShoppingItem>) {
         const now = new Date().toISOString()

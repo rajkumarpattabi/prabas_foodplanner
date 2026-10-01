@@ -72,13 +72,16 @@ export function upcomingReminders(input: ScheduleInput): ReminderDraft[] {
     const n = name(batch)
     const nextStage = s.phase === 'todo' ? s.stage : s.nextAction?.stage
     const nextAt = s.phase === 'todo' ? s.due : s.nextAction?.at
+    // A step not done on time moves the ready time along with the clock: say when it was
+    // due instead, so the reminder doesn't change (and get written again) every minute.
+    const late = s.phase === 'todo' && s.due !== null && s.due.getTime() <= now.getTime()
     if (nextStage !== undefined && nextAt) {
       const verb = STAGE_LABELS[batch.stages[nextStage].key].verb.toLowerCase()
       out.push({
         key: `stage:${batch.id}:${nextStage}`,
         type: 'stage',
         title: `${n}: ${verb} now`,
-        body: `Ready ${at(s.readyAt)}`,
+        body: late ? `It was due ${at(nextAt)}` : `Ready ${at(s.readyAt)}`,
         url: '/plan',
         due_at: nextAt.toISOString(),
         due_date: null,
@@ -93,7 +96,7 @@ export function upcomingReminders(input: ScheduleInput): ReminderDraft[] {
     }
     // "It's ready", when the last stage runs by the clock (fermenting, resting).
     const last = batch.stages.at(-1)!
-    if ((s.phase === 'todo' || s.phase === 'waiting') && !last.action) {
+    if ((s.phase === 'waiting' || (s.phase === 'todo' && !late)) && !last.action) {
       out.push({
         key: `ready:${batch.id}`,
         type: 'stage',

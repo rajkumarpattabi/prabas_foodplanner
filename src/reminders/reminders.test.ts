@@ -146,6 +146,12 @@ describe('batch steps', () => {
     expect(upcomingReminders(input({ states: [ragiPlanned(later)] }, later))).toEqual(one)
   })
 
+  test('a step not done on time: the same reminder whatever the minute, saying when it was due', () => {
+    const late = (t: Date) => upcomingReminders(input({ states: [ragiPlanned(t)] }, t))
+    expect(late(at(5, 21, 30))).toEqual(late(at(5, 21, 45)))
+    expect(late(at(5, 21, 30))).toMatchObject([{ key: 'stage:b1:0', body: 'It was due Mon 9 pm' }])
+  })
+
   test('soaked: the next step is cooking in the morning', () => {
     const s = batchState(batch('b1', 'Ragi koozh', RAGI, at(5, 21)), [done('b1', 0, at(5, 21))], at(5, 22))
     const r = upcomingReminders(input({ states: [s] }, at(5, 22)))
