@@ -6,7 +6,9 @@ import { renderApp } from '../test/renderApp.tsx'
 
 const PONGAL = 'hh-1:dish:ven_pongal'
 const PONGAL_TA = 'வெண் பொங்கல்'
-const today = () => localDate(new Date())
+// A fixed, ordinary Thursday (not a Saturday, Amavasai or Puratasi), so results don't depend on the day.
+const NOW = new Date(2026, 10, 19, 12)
+const today = () => localDate(NOW)
 
 let n = 0
 function bought(household: ReturnType<typeof fakeHouseholdApi>, itemId: string, quantity: number) {
@@ -30,7 +32,7 @@ async function openBreakfast(setup: (h: ReturnType<typeof fakeHouseholdApi>) => 
   bought(household, 'hh-1:rice', 5000)
   bought(household, 'hh-1:coconut', 1)
   setup(household)
-  renderApp({ path: '/plan', household })
+  renderApp({ now: NOW, path: '/plan', household })
   fireEvent.click(await screen.findByRole('radio', { name: 'Today' }))
   fireEvent.click(screen.getByRole('radio', { name: 'Breakfast' }))
   return household
@@ -98,7 +100,7 @@ describe('cooking', () => {
   test('short stock is shown, and never more than there is is taken', async () => {
     const household = fakeHouseholdApi({ withHousehold: true })
     bought(household, 'hh-1:rice', 100)
-    renderApp({ path: '/plan', household })
+    renderApp({ now: NOW, path: '/plan', household })
     fireEvent.click(await screen.findByRole('radio', { name: 'Today' }))
     fireEvent.click(screen.getByRole('radio', { name: 'Breakfast' }))
     fireEvent.click(within(await screen.findByRole('article', { name: PONGAL_TA })).getByRole('button', { name: 'Cook this' }))

@@ -4,6 +4,7 @@ import { ToastProvider } from '../components/ToastProvider.tsx'
 import { createSync, type Sync } from '../offline/setup.ts'
 import { Root } from '../Root.tsx'
 import { ThemeProvider } from '../theme/ThemeProvider.tsx'
+import { ClockContext } from '../lib/clock.ts'
 import { fakeAuth, fakeSession } from './fakeAuth.ts'
 import { fakeDrive } from './fakeDrive.ts'
 import { fakeHouseholdApi } from './fakeHousehold.ts'
@@ -17,6 +18,8 @@ interface Options {
   sync?: Sync
   /** Google Drive; null for a build without a Google client id. */
   drive?: DriveDeps | null
+  /** A fixed time for screens that work from "today" (the real clock if not given). */
+  now?: Date
 }
 
 let dbCount = 0
@@ -28,14 +31,18 @@ export function renderApp({
   household = fakeHouseholdApi({ withHousehold: true }),
   sync = createSync(household.execute, `prabas-test-${++dbCount}`),
   drive = fakeDrive().deps,
+  now,
 }: Options = {}) {
+  const clock = now ? () => new Date(now) : () => new Date()
   const result = render(
     <MemoryRouter initialEntries={[path]}>
+      <ClockContext.Provider value={clock}>
       <ThemeProvider>
         <ToastProvider>
           <Root auth={auth} householdApi={household} stockApi={household.stockApi} dishApi={household.dishApi} mealApi={household.mealApi} calendarApi={household.calendarApi} backupApi={household.backupApi} sync={sync} drive={drive} />
         </ToastProvider>
       </ThemeProvider>
+      </ClockContext.Provider>
     </MemoryRouter>,
   )
   return { ...result, auth, household, sync }

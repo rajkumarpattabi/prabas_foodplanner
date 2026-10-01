@@ -6,11 +6,13 @@ import { renderApp } from '../test/renderApp.tsx'
 
 const PONGAL = 'hh-1:dish:ven_pongal'
 const PONGAL_TA = 'வெண் பொங்கல்'
-const today = () => localDate(new Date())
+// A fixed, ordinary Thursday (not a Saturday, Amavasai or Puratasi), so results don't depend on the day.
+const NOW = new Date(2026, 10, 19, 12)
+const today = () => localDate(NOW)
 
 /** Open the Plan tab on today's breakfast (or another meal). */
 async function openPlan(household = fakeHouseholdApi({ withHousehold: true }), meal = 'Breakfast') {
-  renderApp({ path: '/plan', household })
+  renderApp({ now: NOW, path: '/plan', household })
   fireEvent.click(await screen.findByRole('radio', { name: 'Today' }))
   fireEvent.click(screen.getByRole('radio', { name: meal }))
   return household
@@ -99,7 +101,7 @@ describe('Plan tab', () => {
   })
 
   test('the day and meal can be changed', async () => {
-    renderApp({ path: '/plan' })
+    renderApp({ now: NOW, path: '/plan' })
     fireEvent.click(await screen.findByRole('radio', { name: 'Tomorrow' }))
     fireEvent.click(screen.getByRole('radio', { name: 'Dinner' }))
     expect(screen.getByRole('radio', { name: 'Tomorrow' }).getAttribute('aria-checked')).toBe('true')
@@ -200,7 +202,7 @@ describe('planning', () => {
 
 describe('switching', () => {
   test('the day and meal can be switched back and forth', async () => {
-    renderApp({ path: '/plan' })
+    renderApp({ now: NOW, path: '/plan' })
     fireEvent.click(await screen.findByRole('radio', { name: 'Tomorrow' }))
     fireEvent.click(screen.getByRole('radio', { name: 'Dinner' }))
     expect(screen.getByRole('radio', { name: 'Tomorrow' }).getAttribute('aria-checked')).toBe('true')

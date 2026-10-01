@@ -11,13 +11,15 @@ interface Props {
   replacing: Dish
   onPick: (side: Dish) => void
   onClose: () => void
+  /** A veg-only day: no non-veg sides to swap in. */
+  vegOnly?: boolean
 }
 
 /** Other sides to swap in: the main's other ranked sides first, then dishes of the same type. */
-export function AlternativesSheet({ combo, replacing, onPick, onClose }: Props) {
+export function AlternativesSheet({ combo, replacing, onPick, onClose, vegOnly = false }: Props) {
   const { dishes } = useDishes()
   const pref = useReadyHousehold().me.script_pref
-  const options = alternativeSides(combo, replacing, dishes)
+  const options = alternativeSides(combo, replacing, dishes, 12, vegOnly)
   return (
     <Sheet title={`Instead of ${namePair(replacing, pref)[0]}`} onClose={onClose}>
       {options.length ? (

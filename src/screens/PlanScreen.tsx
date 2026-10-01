@@ -1,6 +1,9 @@
 import { useMemo, useState, type ReactNode } from 'react'
 import { Link } from 'react-router'
-import { SettingsIcon } from '../components/icons.tsx'
+import { dayContext, type DayContext } from '../calendar/dayContext.ts'
+import { useCalendar } from '../calendar/calendarContext.ts'
+import { NonVegIcon, PoriyalIcon, SettingsIcon } from '../components/icons.tsx'
+import { useClock } from '../lib/clock.ts'
 import { Screen } from '../components/Screen.tsx'
 import { Segmented } from '../components/Segmented.tsx'
 import { useToast } from '../components/toastContext.ts'
@@ -12,7 +15,7 @@ import { addDays, localDate, type LocalDate } from '../lib/dates.ts'
 import { namePair } from '../lib/names.ts'
 import { attribution } from '../lib/time.ts'
 import { AlternativesSheet } from '../plan/AlternativesSheet.tsx'
-import { comboFromMeal, combosFor, swapSide, usableLeftovers, type Combo } from '../plan/combos.ts'
+import { comboFromMeal, comboIsNonVeg, combosFor, swapSide, usableLeftovers, type Combo } from '../plan/combos.ts'
 import { CookSheet } from '../plan/CookSheet.tsx'
 import { useMeals } from '../plan/mealContext.ts'
 import { nextMeal } from '../plan/mealTime.ts'
@@ -37,8 +40,9 @@ const secondary = 'min-h-12 flex-1 rounded-xl border border-line bg-surface font
 export function PlanScreen() {
   // The next meal to come (after dinner time, that's tomorrow's breakfast), read once
   // when the screen opens.
+  const clock = useClock()
   const [start] = useState(() => {
-    const now = new Date()
+    const now = clock()
     const next = nextMeal(now)
     const today = localDate(now)
     return { today, day: (next.date === today ? 'today' : 'tomorrow') as Day, meal: next.meal }
@@ -83,9 +87,12 @@ function MealPlan({ date, meal, today }: { date: LocalDate; meal: Meal; today: L
   const { status: dishStatus, dishes, dishesById } = useDishes()
   const { status: stockStatus } = useStock()
   const { status: mealStatus, leftovers, mealFor, planMeal, removeMeal, restoreMeal } = useMeals()
+  const { status: calendarStatus, days } = useCalendar()
   const pref = useReadyHousehold().me.script_pref
   const toast = useToast()
-  const ctx = usePlanContext(date)
+  // The family's food rules for this day: veg only (and why), or a non-veg day.
+  const day = useMemo(() => dayContext(date, days), [date, days])
+  const ctx = usePlanContext(date, day.nonVegDay)
   const usable = useMemo(() => usableLeftovers(leftovers, date), [leftovers, date])
   const existing = mealFor(date, meal)
   const [changing, setChanging] = useState(false)
@@ -96,11 +103,11 @@ function MealPlan({ date, meal, today }: { date: LocalDate; meal: Meal; today: L
   const [cooking, setCooking] = useState<Combo | null>(null)
 
   const { picks, rediscovery } = useMemo(() => {
-    const combos = combosFor(meal, dishes, usable).map((c) => swapped.get(c.main.id) ?? c)
+    const combos = combosFor(meal, dishes, usable, { vegOnly: day.vegOnly }).map((c) => swapped.get(c.main.id) ?? c)
     return suggest(combos, ctx, `${date}:${meal}`)
-  }, [meal, dishes, usable, date, swapped, ctx])
+  }, [meal, dishes, usable, date, swapped, ctx, day.vegOnly])
 
-  if (dishStatus !== 'ready' || stockStatus !== 'ready' || mealStatus !== 'ready') return null
+  if (dishStatus !== 'ready' || stockStatus !== 'ready' || mealStatus !== 'ready' || calendarStatus !== 'ready') return null
 
   const when = whenLabel(date, meal, today)
   const dishName = (d: Dish) => namePair(d, pref)[0]
@@ -117,6 +124,7 @@ function MealPlan({ date, meal, today }: { date: LocalDate; meal: Meal; today: L
     <AlternativesSheet
       combo={swapping.combo}
       replacing={swapping.side}
+      vegOnly={day.vegOnly}
       onPick={(next) => {
         const combo = swapSide(swapping.combo, swapping.side, next)
         if (swapping.planned) plan(combo)
@@ -131,6 +139,7 @@ function MealPlan({ date, meal, today }: { date: LocalDate; meal: Meal; today: L
   // suggestions into the cooked meal) doesn't close the sheet before its leftovers step.
   const withSheets = (content: ReactNode) => (
     <>
+      <DayChip day={day} />
       {content}
       {sheet}
       {cookSheet}
@@ -144,6 +153,7 @@ function MealPlan({ date, meal, today }: { date: LocalDate; meal: Meal; today: L
           record={existing}
           combo={comboFromMeal(existing.dish_ids, dishesById, usable)}
           ctx={ctx}
+          day={day}
           onSide={(combo, side) => setSwapping({ combo, side, planned: true })}
           onCook={setCooking}
           onChange={() => setChanging(true)}
@@ -217,10 +227,12 @@ function PlannedMeal({
   onCook,
   onChange,
   onRemove,
+  day,
 }: {
   record: MealRecord
   combo: Combo | null
   ctx: PlanContext
+  day: DayContext
   onSide: (combo: Combo, side: Dish) => void
   onCook: (combo: Combo) => void
   onChange: () => void
@@ -232,10 +244,17 @@ function PlannedMeal({
   const byLine = cooked
     ? attribution({ by: record.cooked_by, at: record.cooked_at!, me: me.user_id, names, verb: 'Cooked' })
     : attribution({ by: record.updated_by ?? record.created_by, at: record.updated_at, me: me.user_id, names, verb: 'Planned' })
+  // Planned before the day turned out to be veg-only (a date confirmed later, say).
+  const clash = !cooked && day.vegOnly && combo !== null && comboIsNonVeg(combo)
   const header = (
     <div className="mb-3">
       <p className={`text-sm font-semibold ${cooked ? 'text-ink-muted' : 'text-leaf'}`}>{cooked ? 'Cooked' : 'Planned'}</p>
       <p className="text-xs text-ink-muted">{byLine}</p>
+      {clash && (
+        <p role="alert" className="mt-2 rounded-xl bg-red-fill px-3 py-2 text-sm font-medium text-red">
+          Non-veg on a veg-only day ({day.restrictions[0]?.label}). Change it?
+        </p>
+      )}
     </div>
   )
   const actions = !cooked && (
@@ -275,5 +294,22 @@ function PlannedMeal({
     >
       {actions}
     </SuggestionCard>
+  )
+}
+
+/** The day's food rule: veg only (and why), or a non-veg day. Tap for the calendar. */
+function DayChip({ day }: { day: DayContext }) {
+  if (!day.chip) return null
+  const Icon = day.vegOnly ? PoriyalIcon : NonVegIcon
+  return (
+    <Link
+      to="/calendar"
+      className={`mt-3 inline-flex min-h-10 items-center gap-2 rounded-full px-3 text-sm font-medium ${
+        day.vegOnly ? 'bg-leaf-fill text-leaf-strong' : 'bg-red-fill text-red'
+      }`}
+    >
+      <Icon width={18} height={18} aria-hidden="true" />
+      {day.chip}
+    </Link>
   )
 }
