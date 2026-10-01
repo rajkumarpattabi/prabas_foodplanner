@@ -301,12 +301,12 @@ describe('shopping nudges', () => {
     ])
   })
 
-  test('not for something in stock or on the list already', () => {
-    const nudges = shoppingNudges(input({ rows: rows({ chana: [ev('chana', 500)], toor: [ev('toor', 500)] }), listed: new Set(['murungai_keerai']) }))
-    // No legumes to buy (both dals in stock), so greens, then a vegetable not had lately.
+  test('not for a gap already in hand: something that fills it is in stock or on the list', () => {
+    // A dal in stock (legumes in hand), murungai keerai on the list (greens in hand).
+    const nudges = shoppingNudges(input({ rows: rows({ chana: [ev('chana', 500)] }), listed: new Set(['murungai_keerai']) }))
     expect(nudges.map((x) => [x.group, x.item.id])).toEqual([
-      ['greens', 'keerai'],
       ['variety', 'brinjal'],
+      ['millet', 'ragi'],
     ])
   })
 

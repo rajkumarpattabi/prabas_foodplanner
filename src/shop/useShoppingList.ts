@@ -17,6 +17,9 @@ import { batchState, isActive } from '../prepared/batchState.ts'
 import { prepPlan, STAGE_LABELS } from '../prepared/plan.ts'
 import { useNow } from '../prepared/useNow.ts'
 import { useStock } from '../stock/stockContext.ts'
+import { cookedMeals, nutrition } from '../nutrition/balance.ts'
+import { shoppingNudges, type Nudge } from '../nutrition/nudges.ts'
+import { dishHistory } from '../plan/history.ts'
 import { stockRows } from '../stock/view.ts'
 import { buildShoppingList, nonVegNudges, SHOP, type BatchNeed, type MealNeed, type NonVegNudge, type ShopLine } from './build.ts'
 import { useShopping } from './shoppingContext.ts'
@@ -26,6 +29,8 @@ export interface ShoppingList {
   today: LocalDate
   lines: ShopLine[]
   nudges: NonVegNudge[]
+  /** At most two food-group nudges: "No keerai in 10 days. Add murungai keerai?" */
+  foodNudges: Nudge[]
 }
 
 /** The shopping list as it stands: from stock, plans, likely meals, batches, the calendar and what was added. */
@@ -43,7 +48,7 @@ export function useShoppingList(): ShoppingList {
   const ready = [stockStatus, dishStatus, mealStatus, calendarStatus, batchStatus, shopStatus].every((s) => s === 'ready')
 
   return useMemo(() => {
-    if (!ready) return { ready, today, lines: [], nudges: [] }
+    if (!ready) return { ready, today, lines: [], nudges: [], foodNudges: [] }
     const rows = stockRows(items, eventsByItem, now)
     const pref = me.script_pref
     const name = (x: { name_ta: string; name_en: string }) => namePair(x, pref)[0]
@@ -117,6 +122,18 @@ export function useShoppingList(): ShoppingList {
         .map((m) => m.date),
     )
     const nudges = nonVegNudges({ today, targets, plannedNonVegDates, rows })
-    return { ready, today, lines, nudges }
+
+    // Food groups short in the last fortnight that buying something would fix.
+    const listed = new Set([...lines.map((l) => l.item.id), ...shopping.filter((s) => s.kind === 'want' && !s.done_at).map((s) => s.item_id)])
+    const foodNudges = shoppingNudges({
+      nutrition: nutrition(cookedMeals(meals, dishesById, ctx.itemsById), today, days),
+      today,
+      calendar: days,
+      rows,
+      listed,
+      dishes,
+      history: dishHistory(meals),
+    })
+    return { ready, today, lines, nudges, foodNudges }
   }, [ready, today, now, items, eventsByItem, dishes, dishesById, meals, leftovers, days, batches, events, shopping, me, members, ctx])
 }

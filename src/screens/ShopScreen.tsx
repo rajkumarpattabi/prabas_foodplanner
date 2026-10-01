@@ -4,6 +4,7 @@ import { Sheet } from '../components/Sheet.tsx'
 import { useToast } from '../components/toastContext.ts'
 import { useReadyHousehold } from '../household/householdContext.ts'
 import { namePair } from '../lib/names.ts'
+import type { Nudge } from '../nutrition/nudges.ts'
 import type { NonVegNudge, ShopLine } from '../shop/build.ts'
 import { SECTION_TITLES, shareText, whatsappLink } from '../shop/share.ts'
 import { useShopping } from '../shop/shoppingContext.ts'
@@ -41,7 +42,7 @@ export function ShopScreen() {
     setSharing(text)
   }
 
-  const empty = list.lines.length === 0 && list.nudges.length === 0
+  const empty = list.lines.length === 0 && list.nudges.length === 0 && list.foodNudges.length === 0
   return (
     <Screen
       title="Shop"
@@ -62,6 +63,9 @@ export function ShopScreen() {
           )}
           {list.nudges.map((n) => (
             <NonVegCard key={n.date} nudge={n} />
+          ))}
+          {list.foodNudges.map((n) => (
+            <FoodCard key={n.group} nudge={n} />
           ))}
           {SECTIONS.map((s) => {
             const lines = list.lines.filter((l) => l.section === s)
@@ -88,6 +92,32 @@ export function ShopScreen() {
       {adding && <AddToListSheet onClose={() => setAdding(false)} />}
       {sharing !== null && <ShareSheet text={sharing} onClose={() => setSharing(null)} />}
     </Screen>
+  )
+}
+
+/** A food group short this fortnight: one tap puts something that fills it on the list. */
+function FoodCard({ nudge }: { nudge: Nudge }) {
+  const { addWant, removeRow } = useShopping()
+  const pref = useReadyHousehold().me.script_pref
+  const toast = useToast()
+  const [first] = namePair(nudge.item, pref)
+  return (
+    <section aria-label={nudge.text} className="mt-4 rounded-2xl border border-line bg-leaf-fill p-3">
+      <p className="font-medium text-leaf-strong">{nudge.text}</p>
+      <div className="mt-2 flex flex-wrap items-center gap-2">
+        <button
+          type="button"
+          onClick={() => {
+            const row = addWant(nudge.item.id)
+            toast(`${first} added to the list`, { undo: () => removeRow(row.id) })
+          }}
+          className="min-h-11 rounded-full border border-line bg-surface px-4 text-sm font-medium text-ink"
+        >
+          + {first}
+        </button>
+        {nudge.dish && <span className="text-sm text-leaf-strong">For {namePair(nudge.dish, pref)[0]}</span>}
+      </div>
+    </section>
   )
 }
 

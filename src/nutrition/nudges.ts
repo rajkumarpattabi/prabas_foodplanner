@@ -76,8 +76,8 @@ export function shoppingNudges({ nutrition, today, calendar, rows, listed, dishe
     if (group === 'fish' && vegOnlyToday) continue
     // Dishes that fill the gap, and the items in them that buying would bring in.
     const filling = dishes.filter((d) => !d.dont_suggest && (group !== 'fish' || !vegOnlyToday) && cover([d], itemsById).groups.has(group))
-    const candidates = rows
-      .filter((r) => !r.item.archived && !listed.has(r.item.id) && !used.has(r.item.id) && r.stock.total <= 0)
+    const fillsGap = rows
+      .filter((r) => !r.item.archived)
       .filter((r) => {
         const c = r.item.category
         if (group === 'greens') return c === 'greens'
@@ -88,6 +88,10 @@ export function shoppingNudges({ nutrition, today, calendar, rows, listed, dishe
         const kind = group === 'legume' ? 'dal' : group === 'millet' ? 'grain' : 'dairy'
         return c === kind && filling.some((d) => d.ingredients.some((i) => i.item_id === r.item.id && !i.optional))
       })
+    // Something that fills it is on the list or in the kitchen already: the gap is in hand.
+    if (fillsGap.some((r) => listed.has(r.item.id) || r.stock.total > 0)) continue
+    const candidates = fillsGap
+      .filter((r) => !used.has(r.item.id))
       .map((r) => {
         const dish = filling.filter((d) => d.ingredients.some((i) => i.item_id === r.item.id && !i.optional)).sort(familiar)[0] ?? null
         return { r, dish }
