@@ -17,6 +17,18 @@ export function addDays(date: LocalDate, days: number): LocalDate {
   return localDate(new Date(d.getFullYear(), d.getMonth(), d.getDate() + days))
 }
 
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+
+/**
+ * "18 Sep", or "Fri 18 Sep" with the weekday. Written out by hand: the browser's own
+ * formatting differs between phones ("Sept" on some, "Sep" on others).
+ */
+export function formatDay(date: LocalDate, { weekday = false } = {}): string {
+  const d = parseLocalDate(date)
+  return `${weekday ? `${WEEKDAYS[d.getDay()]} ` : ''}${d.getDate()} ${MONTHS[d.getMonth()]}`
+}
+
 /** Whole days from `from` to `to` (negative if `to` is earlier). */
 export function daysBetween(from: LocalDate, to: LocalDate): number {
   return Math.round((parseLocalDate(to).getTime() - parseLocalDate(from).getTime()) / 86_400_000)

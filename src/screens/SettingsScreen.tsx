@@ -7,6 +7,10 @@ import { Screen } from '../components/Screen.tsx'
 import { Section } from '../components/Section.tsx'
 import { Segmented } from '../components/Segmented.tsx'
 import { HouseholdSection } from '../household/HouseholdSection.tsx'
+import { useCalendar } from '../calendar/calendarContext.ts'
+import { toCheckCount } from '../calendar/view.ts'
+import { useClock } from '../lib/clock.ts'
+import { localDate } from '../lib/dates.ts'
 import { useReadyHousehold } from '../household/householdContext.ts'
 import type { ScriptPref } from '../lib/database.types.ts'
 import type { ThemePref } from '../theme/theme.ts'
@@ -73,6 +77,8 @@ export function SettingsScreen() {
         <p className="mt-2 text-sm text-ink-muted">Auto switches to dark after sunset in Chennai.</p>
       </Section>
 
+      <FoodRulesSection />
+
       <BackupSection />
 
       <Section title="Account">
@@ -88,5 +94,23 @@ export function SettingsScreen() {
         </button>
       </Section>
     </Screen>
+  )
+}
+
+/** The family's food rules: where the veg-only days are kept, and how many need checking. */
+function FoodRulesSection() {
+  const { days } = useCalendar()
+  const clock = useClock()
+  const pending = toCheckCount(days, localDate(clock()))
+  return (
+    <Section title="Food rules">
+      <p className="text-sm text-ink-muted">No non-veg on Saturdays, Amavasai, Kiruthigai, Puratasi or family days.</p>
+      <Link to="/calendar" className="mt-3 flex min-h-12 items-center justify-between rounded-xl border border-line px-3 font-medium">
+        <span>Calendar</span>
+        <span className={`text-sm ${pending ? 'text-turmeric-strong' : 'text-ink-muted'}`}>
+          {pending ? `${pending} ${pending === 1 ? 'date' : 'dates'} to check` : 'All confirmed'}
+        </span>
+      </Link>
+    </Section>
   )
 }

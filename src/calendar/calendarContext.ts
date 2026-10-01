@@ -10,6 +10,8 @@ export interface NewCalendarDay {
   label?: string
   end_date?: LocalDate | null
   note?: string | null
+  /** Confirmed unless said otherwise (an undone removal keeps how it was). */
+  verified?: boolean
 }
 
 export type CalendarPatch = Partial<Pick<CalendarDay, 'date' | 'end_date' | 'label' | 'verified' | 'note'>>
@@ -18,7 +20,7 @@ export interface CalendarState {
   status: CalendarStatus
   error: string | null
   days: CalendarDay[]
-  /** Added here by someone at home, so it starts confirmed. */
+  /** Added here by someone at home, so it starts confirmed (unless said otherwise). */
   addDay: (day: NewCalendarDay) => CalendarDay
   updateDay: (id: string, patch: CalendarPatch) => void
   removeDay: (id: string) => void

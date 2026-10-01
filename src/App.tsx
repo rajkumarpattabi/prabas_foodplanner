@@ -2,6 +2,7 @@ import { Navigate, Route, Routes } from 'react-router'
 import { DriveAutoBackup } from './backup/drive/DriveAutoBackup.tsx'
 import { SyncStatus } from './components/SyncStatus.tsx'
 import { TabBar } from './components/TabBar.tsx'
+import { CalendarScreen } from './screens/CalendarScreen.tsx'
 import { DishesScreen } from './screens/DishesScreen.tsx'
 import { PlanScreen } from './screens/PlanScreen.tsx'
 import { SettingsScreen } from './screens/SettingsScreen.tsx'
@@ -21,6 +22,7 @@ export default function App() {
           <Route path="/shop" element={<ShopScreen />} />
           <Route path="/dishes" element={<DishesScreen />} />
           <Route path="/settings" element={<SettingsScreen />} />
+          <Route path="/calendar" element={<CalendarScreen />} />
           <Route path="*" element={<Navigate to="/plan" replace />} />
         </Routes>
       </main>

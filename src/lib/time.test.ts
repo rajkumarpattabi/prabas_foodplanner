@@ -1,4 +1,5 @@
 import { describe, expect, test } from 'vitest'
+import { formatDay } from './dates.ts'
 import { attribution, relTime } from './time.ts'
 
 const now = new Date('2026-09-29T20:00:00Z').getTime()
@@ -39,5 +40,13 @@ describe('attribution', () => {
 
   test('other verbs: planned, cooked', () => {
     expect(attribution({ by: 'u2', at: ago(10 * MIN), me: 'u1', names, now, verb: 'Planned' })).toBe('Planned by Priya · 10 min ago')
+  })
+})
+
+describe('formatDay', () => {
+  test('the same short month on every phone: Sep, never Sept', () => {
+    expect(formatDay('2026-09-18')).toBe('18 Sep')
+    expect(formatDay('2026-09-18', { weekday: true })).toBe('Fri 18 Sep')
+    expect(formatDay('2027-01-07', { weekday: true })).toBe('Thu 7 Jan')
   })
 })

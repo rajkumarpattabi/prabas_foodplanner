@@ -1,6 +1,6 @@
 // An item's history, one plain line per stock event.
 
-import { parseLocalDate } from '../lib/dates.ts'
+import { formatDay } from '../lib/dates.ts'
 import type { Item, StockEvent } from './types.ts'
 import { formatQuantity } from './units.ts'
 
@@ -8,7 +8,7 @@ type HistoryItem = Pick<Item, 'unit' | 'piece_weight_g'>
 
 /** "5 Oct" */
 export function shortDate(date: string): string {
-  return parseLocalDate(date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })
+  return formatDay(date)
 }
 
 /** "Bought 500 g · use by 5 Oct", "Used 250 g", "Corrected to 300 g", "Undo: put back 250 g". */

@@ -1,6 +1,6 @@
 import { fireEvent, screen, waitFor, within } from '@testing-library/react'
 import { describe, expect, test } from 'vitest'
-import { addDays, localDate } from '../lib/dates.ts'
+import { addDays, formatDay, localDate } from '../lib/dates.ts'
 import { fakeHouseholdApi } from '../test/fakeHousehold.ts'
 import { renderApp } from '../test/renderApp.tsx'
 
@@ -156,4 +156,4 @@ describe('editing an item', () => {
   })
 })
 
-const short = (d: string) => new Date(d + 'T00:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })
+const short = (d: string) => formatDay(d)

@@ -40,7 +40,7 @@ export function CalendarProvider({ api, householdId, userId, children }: Props) 
         end_date: input.end_date ?? null,
         type: input.type,
         label: input.label?.trim() ?? '',
-        verified: true,
+        verified: input.verified ?? true,
         note: input.note ?? null,
         created_by: userId,
         created_at: now,
