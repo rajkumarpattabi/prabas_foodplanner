@@ -11,6 +11,8 @@ import type { TableChange } from '../offline/useTableSync.ts'
 import { MealError, type MealApi } from '../plan/api.ts'
 import { CalendarError, type CalendarApi } from '../calendar/api.ts'
 import type { CalendarDay } from '../calendar/types.ts'
+import { BatchError, type BatchApi } from '../prepared/api.ts'
+import type { Batch, BatchEvent } from '../prepared/types.ts'
 import type { Leftover, MealRecord } from '../plan/types.ts'
 import { StockError, type RemoteChange, type StockApi } from '../stock/api.ts'
 import type { Item, StockEvent } from '../stock/types.ts'
@@ -159,6 +161,10 @@ export function fakeHouseholdApi({ withHousehold = false, offline = false }: Opt
   let calendar: CalendarDay[] = []
   const calendarListeners = new Set<(change: TableChange) => void>()
   const tellCalendar = (change: TableChange) => calendarListeners.forEach((l) => l(structuredClone(change)))
+  let batches: Batch[] = []
+  let batchEvents: BatchEvent[] = []
+  const batchListeners = new Set<(change: TableChange) => void>()
+  const tellBatch = (change: TableChange) => batchListeners.forEach((l) => l(structuredClone(change)))
   const seed = (hid: string) => {
     items = starterItems(hid)
     dishes = starterDishes(hid)
@@ -283,6 +289,52 @@ export function fakeHouseholdApi({ withHousehold = false, offline = false }: Opt
     }),
   } satisfies CalendarApi
 
+  /** Batches and their events, with the same rules as the database: never updated, events append-only. */
+  const batchApi = {
+    load: vi.fn(async (householdId: string) => {
+      if (net.offline) throw new BatchError('offline')
+      return structuredClone({
+        batches: batches.filter((b) => b.household_id === householdId),
+        batch_events: batchEvents.filter((e) => e.household_id === householdId),
+      })
+    }),
+    subscribe: vi.fn((_householdId: string, onChange: (change: TableChange) => void) => {
+      batchListeners.add(onChange)
+      return () => void batchListeners.delete(onChange)
+    }),
+  } satisfies BatchApi
+
+  const executeBatch = (op: OutboxOp): OpResult => {
+    if (op.kind === 'update') return { status: 'reject', message: 'permission denied' }
+    if (op.kind === 'delete') {
+      if (op.table !== 'batches') return { status: 'reject', message: 'permission denied' }
+      const current = batches.find((b) => b.id === op.match.id && b.household_id === household?.id)
+      if (!current) return { status: 'ok' }
+      batches = batches.filter((b) => b.id !== current.id)
+      batchEvents = batchEvents.filter((e) => e.batch_id !== current.id)
+      tellBatch({ table: 'batches', deletedId: current.id })
+      return { status: 'ok' }
+    }
+    const row = op.row as Record<string, unknown> & { id: string; household_id: string; created_by: string }
+    if (row.household_id !== household?.id || row.created_by !== me) return { status: 'reject', message: 'row-level security' }
+    const created_at = new Date().toISOString()
+    if (op.table === 'batches') {
+      if (batches.some((b) => b.id === row.id)) return { status: 'ok' }
+      const batch = { ...(row as unknown as Batch), created_at }
+      batches = [...batches, batch]
+      tellBatch({ table: 'batches', row: batch })
+      return { status: 'ok' }
+    }
+    if (batchEvents.some((e) => e.id === row.id)) return { status: 'ok' }
+    const e = row as unknown as BatchEvent
+    if (!batches.some((b) => b.id === e.batch_id && b.household_id === e.household_id)) return { status: 'reject', message: 'foreign key' }
+    if (e.kind === 'used' && !((e.quantity ?? 0) > 0)) return { status: 'reject', message: 'check constraint' }
+    const event = { ...e, created_at }
+    batchEvents = [...batchEvents, event]
+    tellBatch({ table: 'batch_events', row: event })
+    return { status: 'ok' }
+  }
+
   const executeCalendar = (op: OutboxOp): OpResult => {
     const valid = (d: Partial<CalendarDay>) => !d.end_date || (d.type === 'puratasi' && d.end_date >= (d.date ?? ''))
     if (op.kind === 'insert') {
@@ -399,6 +451,7 @@ export function fakeHouseholdApi({ withHousehold = false, offline = false }: Opt
     if (op.table === 'dishes') return executeDish(op)
     if (op.table === 'meals' || op.table === 'leftovers') return executeMeal(op)
     if (op.table === 'calendar_days') return executeCalendar(op)
+    if (op.table === 'batches' || op.table === 'batch_events') return executeBatch(op)
     if (op.kind !== 'update') return { status: 'reject', message: 'not supported in the fake' }
     const stamp = { updated_by: me, updated_at: new Date().toISOString() }
     if (op.table === 'items') {
@@ -500,6 +553,7 @@ export function fakeHouseholdApi({ withHousehold = false, offline = false }: Opt
     dishApi,
     mealApi,
     calendarApi,
+    batchApi,
     execute,
     /** Read the "server" side, to check what was actually saved. */
     server: {
@@ -517,6 +571,26 @@ export function fakeHouseholdApi({ withHousehold = false, offline = false }: Opt
       dishes: () => dishes,
       meals: () => meals,
       calendar: () => calendar,
+      batches: () => batches,
+      batchEvents: () => batchEvents,
+      /** The other phone (user-2) records something on a batch; this phone hears about it live. */
+      otherPhoneAddsBatchEvent(event: Pick<BatchEvent, 'batch_id' | 'kind'> & Partial<BatchEvent>) {
+        const now = new Date().toISOString()
+        const row: BatchEvent = {
+          id: `other-ev-${batchEvents.length + 1}`,
+          household_id: household!.id,
+          stage: null,
+          quantity: null,
+          undoes: null,
+          occurred_at: now,
+          created_by: 'user-2',
+          created_at: now,
+          ...event,
+        }
+        batchEvents = [...batchEvents, row]
+        if (!net.offline) tellBatch({ table: 'batch_events', row })
+        return row
+      },
       /** Restricted days already in the household (as seeded: unverified unless said). */
       addCalendarDays(...days: (Pick<CalendarDay, 'date' | 'type'> & Partial<CalendarDay>)[]) {
         for (const d of days) {

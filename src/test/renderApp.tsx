@@ -39,7 +39,7 @@ export function renderApp({
       <ClockContext.Provider value={clock}>
       <ThemeProvider>
         <ToastProvider>
-          <Root auth={auth} householdApi={household} stockApi={household.stockApi} dishApi={household.dishApi} mealApi={household.mealApi} calendarApi={household.calendarApi} backupApi={household.backupApi} sync={sync} drive={drive} />
+          <Root auth={auth} householdApi={household} stockApi={household.stockApi} dishApi={household.dishApi} mealApi={household.mealApi} calendarApi={household.calendarApi} batchApi={household.batchApi} backupApi={household.backupApi} sync={sync} drive={drive} />
         </ToastProvider>
       </ThemeProvider>
       </ClockContext.Provider>
