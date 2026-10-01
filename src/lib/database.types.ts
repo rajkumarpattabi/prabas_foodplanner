@@ -4,6 +4,7 @@
 import type { CalendarDay as CalendarDayInterface } from '../calendar/types.ts'
 import type { Dish as DishInterface } from '../dishes/types.ts'
 import type { Leftover as LeftoverInterface, MealRecord as MealInterface } from '../plan/types.ts'
+import type { Batch as BatchInterface, BatchEvent as BatchEventInterface } from '../prepared/types.ts'
 import type { Item as ItemInterface, StockEvent as StockEventInterface } from '../stock/types.ts'
 
 // supabase-js needs plain object types for rows (interfaces don't fit its table
@@ -11,6 +12,8 @@ import type { Item as ItemInterface, StockEvent as StockEventInterface } from '.
 type Plain<T> = { [K in keyof T]: T[K] }
 type Item = Plain<ItemInterface>
 type StockEvent = Plain<StockEventInterface>
+type Batch = Plain<BatchInterface>
+type BatchEvent = Plain<BatchEventInterface>
 type Dish = Plain<DishInterface>
 type MealRow = Plain<MealInterface>
 type Leftover = Plain<LeftoverInterface>
@@ -118,6 +121,18 @@ export type Database = {
         Row: CalendarDay
         Insert: Partial<CalendarDay> & Pick<CalendarDay, 'id' | 'household_id' | 'date' | 'type'>
         Update: Partial<Pick<CalendarDay, 'date' | 'end_date' | 'label' | 'verified' | 'note'>>
+        Relationships: []
+      }
+      batches: {
+        Row: Batch
+        Insert: Partial<Batch> & Pick<Batch, 'id' | 'household_id' | 'name_ta' | 'name_en' | 'stages' | 'planned_start' | 'yield' | 'unit' | 'keeps_days'>
+        Update: never
+        Relationships: []
+      }
+      batch_events: {
+        Row: BatchEvent
+        Insert: Partial<BatchEvent> & Pick<BatchEvent, 'id' | 'household_id' | 'batch_id' | 'kind'>
+        Update: never
         Relationships: []
       }
     }
