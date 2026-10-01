@@ -111,6 +111,11 @@ Colourful but calm. Colour always carries meaning. Never rely on colour alone; p
       scripts, share to WhatsApp; fish or meat card for non-veg days; no meat, fish or egg listed in
       Puratasi or on veg-only days; tab count; shopping list in backups. Migration 0013 applied. Tested on
       both phones.)
-- [ ] Batch 8: Reminders
+- [x] Batch 8: Reminders (done 2026-10-01: Web Push on both phones with the app closed; the phones work
+      out upcoming reminders (batch steps, night-before prep, fish or meat to buy, staples running low,
+      batches about to finish) into a reminders table, and the send-reminders Edge Function, called every
+      15 minutes by pg_cron, sends what's due; per-person kinds, evening time and quiet hours; turn on per
+      phone, send a test, iPhone Home Screen note. Migrations 0014–0015 applied; setup in
+      docs/REMINDERS_SETUP.md. Tested on both phones.)
 - [ ] Batch 9: Nutrition
 - [ ] Batch 10: Bill scanning
