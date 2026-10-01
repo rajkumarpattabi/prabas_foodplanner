@@ -1,0 +1,116 @@
+// A combo is a main dish and up to two sides. Mains come from the library; sides
+// from each main's ranked list, one of each kind, with a leftover used first.
+
+import type { Dish, DishType, Meal } from '../dishes/types.ts'
+import type { LocalDate } from '../lib/dates.ts'
+import type { Leftover } from './types.ts'
+
+export const MAX_SIDES = 2
+
+export interface Combo {
+  main: Dish
+  sides: Dish[]
+  /** The leftover serving one of the sides, if any: it's already cooked. */
+  leftover: Leftover | null
+}
+
+/** Dishes that make a meal on their own. Other mains are the ones with sides of their own. */
+const STANDALONE: ReadonlySet<DishType> = new Set(['tiffin', 'variety_rice', 'drink'])
+
+/**
+ * What kind of side a dish is: a combo gets at most one of each, so plain rice comes
+ * with a sambar and a poriyal, not a sambar and a kuzhambu.
+ */
+const SIDE_KIND: Record<DishType, string> = {
+  kuzhambu: 'gravy',
+  sambar: 'gravy',
+  rasam: 'gravy',
+  kootu: 'gravy',
+  nonveg_gravy: 'gravy',
+  poriyal: 'dry',
+  nonveg_fry: 'dry',
+  chutney: 'chutney',
+  tiffin: 'tiffin',
+  variety_rice: 'rice',
+  drink: 'drink',
+  snack: 'snack',
+}
+
+/** Gravies that go with idli, dosa or chapati even if not listed as their side. */
+const TIFFIN_GRAVIES: ReadonlySet<DishType> = new Set(['kuzhambu', 'sambar', 'kootu', 'nonveg_gravy'])
+
+export function isMainFor(dish: Dish, meal: Meal): boolean {
+  return !dish.dont_suggest && dish.meals.includes(meal) && (dish.side_ids.length > 0 || STANDALONE.has(dish.type))
+}
+
+/** Leftovers still good to eat today, newest first. */
+export function usableLeftovers(leftovers: readonly Leftover[], today: LocalDate): Leftover[] {
+  return leftovers
+    .filter((l) => l.eaten_at === null && l.expires_on >= today && l.dish_id !== null)
+    .sort((a, b) => b.created_at.localeCompare(a.created_at))
+}
+
+/**
+ * The sides for a main: a leftover first if it fits (one of its sides, or a gravy with
+ * tiffin), then its ranked sides, skipping hidden ones and a second side of the same kind.
+ */
+export function comboFor(main: Dish, dishesById: ReadonlyMap<string, Dish>, leftovers: readonly Leftover[] = []): Combo {
+  const sides: Dish[] = []
+  const kinds = new Set<string>()
+  const take = (d: Dish) => {
+    if (sides.length >= MAX_SIDES || d.id === main.id || sides.some((s) => s.id === d.id) || kinds.has(SIDE_KIND[d.type])) return false
+    sides.push(d)
+    kinds.add(SIDE_KIND[d.type])
+    return true
+  }
+
+  let leftover: Leftover | null = null
+  for (const l of leftovers) {
+    const dish = dishesById.get(l.dish_id!)
+    if (!dish) continue
+    const fits = main.side_ids.includes(dish.id) || (main.type === 'tiffin' && TIFFIN_GRAVIES.has(dish.type))
+    if (fits && take(dish)) {
+      leftover = l
+      break
+    }
+  }
+  for (const id of main.side_ids) {
+    const d = dishesById.get(id)
+    if (d && !d.dont_suggest) take(d)
+  }
+  return { main, sides, leftover }
+}
+
+/** Every combo for a meal, one per main dish. */
+export function combosFor(meal: Meal, dishes: readonly Dish[], leftovers: readonly Leftover[] = []): Combo[] {
+  const byId = new Map(dishes.map((d) => [d.id, d]))
+  return dishes.filter((d) => isMainFor(d, meal)).map((d) => comboFor(d, byId, leftovers))
+}
+
+/**
+ * Other sides to swap in for one: the main's other ranked sides first, then other
+ * dishes of the same type. Never the main itself, hidden dishes, or sides already chosen.
+ */
+export function alternativeSides(combo: Combo, replacing: Dish, dishes: readonly Dish[], limit = 12): Dish[] {
+  const byId = new Map(dishes.map((d) => [d.id, d]))
+  const taken = new Set([combo.main.id, ...combo.sides.map((s) => s.id)])
+  const out: Dish[] = []
+  const add = (d: Dish | undefined) => {
+    if (d && !d.dont_suggest && !taken.has(d.id) && !out.includes(d)) out.push(d)
+  }
+  combo.main.side_ids.forEach((id) => add(byId.get(id)))
+  dishes
+    .filter((d) => d.type === replacing.type)
+    .sort((a, b) => a.name_en.localeCompare(b.name_en))
+    .forEach(add)
+  return out.slice(0, limit)
+}
+
+/** Swap one side for another, keeping its place. */
+export function swapSide(combo: Combo, replacing: Dish, next: Dish): Combo {
+  return {
+    ...combo,
+    sides: combo.sides.map((s) => (s.id === replacing.id ? next : s)),
+    leftover: combo.leftover?.dish_id === replacing.id ? null : combo.leftover,
+  }
+}
