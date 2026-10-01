@@ -13,7 +13,8 @@
     "check": "npm run typecheck && npm run lint && npm run test",
     "preview": "vite preview",
     "icons": "pwa-assets-generator",
-    "catalog": "node scripts/build-catalog.ts"
+    "catalog": "node scripts/build-catalog.ts",
+    "vapid-keys": "node scripts/vapid-keys.ts"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.117.2",

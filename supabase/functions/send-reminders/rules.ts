@@ -56,3 +56,66 @@ export function decide(reminder: DueReminder, settings: PersonSettings, now: Dat
   if (inQuietHours(local.minutes, settings.quiet_from, settings.quiet_to)) return 'wait'
   return 'send'
 }
+
+export interface ReminderRow extends DueReminder {
+  id: string
+  household_id: string
+  title: string
+  body: string
+  url: string
+}
+
+export interface Device {
+  id: string
+  user_id: string
+  endpoint: string
+  p256dh: string
+  auth: string
+}
+
+export interface Send {
+  reminder: ReminderRow
+  user_id: string
+  devices: Device[]
+}
+
+/** Settings for someone who has never saved theirs. */
+export const DEFAULT_PERSON: PersonSettings = {
+  types: ['prep', 'stage', 'nonveg', 'low', 'expiry'],
+  evening_time: '20:30',
+  quiet_from: '22:00',
+  quiet_to: '06:30',
+  timezone: 'Asia/Kolkata',
+}
+
+/**
+ * Who should be sent which reminder now: every member of the reminder's household
+ * with a device, who hasn't had it, whose settings say it's time.
+ */
+export function planSends({
+  reminders,
+  members,
+  settings,
+  devices,
+  delivered,
+  now,
+}: {
+  reminders: readonly ReminderRow[]
+  members: readonly { household_id: string; user_id: string }[]
+  settings: ReadonlyMap<string, PersonSettings>
+  devices: readonly Device[]
+  /** "<reminder id>|<user id>" for each one already sent. */
+  delivered: ReadonlySet<string>
+  now: Date
+}): Send[] {
+  const out: Send[] = []
+  for (const r of reminders) {
+    for (const m of members) {
+      if (m.household_id !== r.household_id || delivered.has(`${r.id}|${m.user_id}`)) continue
+      const theirs = devices.filter((d) => d.user_id === m.user_id)
+      if (!theirs.length) continue
+      if (decide(r, settings.get(m.user_id) ?? DEFAULT_PERSON, now) === 'send') out.push({ reminder: r, user_id: m.user_id, devices: theirs })
+    }
+  }
+  return out
+}

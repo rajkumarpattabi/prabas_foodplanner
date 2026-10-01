@@ -4,7 +4,8 @@ import type { Combo } from '../plan/combos.ts'
 import { batchState } from '../prepared/batchState.ts'
 import type { Batch, BatchEvent, PrepStage } from '../prepared/types.ts'
 import type { Item } from '../stock/types.ts'
-import { decide, inQuietHours, localParts, type PersonSettings } from '../../supabase/functions/send-reminders/rules.ts'
+import { decide, inQuietHours, localParts, planSends, type PersonSettings, type ReminderRow } from '../../supabase/functions/send-reminders/rules.ts'
+import { keyBytes } from './push.ts'
 import { reminderChanges, upcomingReminders, type ScheduleInput } from './schedule.ts'
 import type { Reminder } from './types.ts'
 
@@ -250,5 +251,59 @@ describe('who gets what, when (the server’s rules)', () => {
 
   test('a type turned off is never sent', () => {
     expect(decide(exact, { ...me, types: ['prep'] }, at(5, 21, 5))).toBe('drop')
+  })
+})
+
+describe('one run of the sender', () => {
+  const r = (id: string, extra: Partial<ReminderRow> = {}): ReminderRow => ({
+    id: `hh:${id}`,
+    household_id: 'hh',
+    type: 'stage',
+    title: 'Ragi koozh: soak now',
+    body: '',
+    url: '/plan',
+    due_at: at(5, 21).toISOString(),
+    due_date: null,
+    at_evening: false,
+    expires_at: at(6, 0).toISOString(),
+    ...extra,
+  })
+  const device = (user_id: string, n = 1) => ({ id: `${user_id}-${n}`, user_id, endpoint: `https://push.example.test/${user_id}/${n}`, p256dh: 'p', auth: 'a' })
+  const members = [
+    { household_id: 'hh', user_id: 'raj' },
+    { household_id: 'hh', user_id: 'amma' },
+    { household_id: 'other', user_id: 'stranger' },
+  ]
+  const base = { members, settings: new Map(), delivered: new Set<string>(), now: at(5, 21, 5) }
+
+  test('each person in the household with a device gets it, on every device they have', () => {
+    const sends = planSends({ ...base, reminders: [r('stage:b1:0')], devices: [device('raj'), device('raj', 2), device('amma'), device('stranger')] })
+    expect(sends.map((s) => [s.user_id, s.devices.map((d) => d.id)])).toEqual([
+      ['raj', ['raj-1', 'raj-2']],
+      ['amma', ['amma-1']],
+    ])
+  })
+
+  test('not again once sent; nobody without a device; each person’s own settings', () => {
+    const devices = [device('raj'), device('amma')]
+    const sends = planSends({
+      ...base,
+      reminders: [r('stage:b1:0')],
+      devices,
+      delivered: new Set(['hh:stage:b1:0|raj']),
+      settings: new Map([['amma', { types: ['prep'], evening_time: '20:30', quiet_from: '22:00', quiet_to: '06:30', timezone: 'Asia/Kolkata' }]]),
+    })
+    expect(sends).toEqual([])
+    expect(planSends({ ...base, reminders: [r('stage:b1:0')], devices: [] })).toEqual([])
+  })
+})
+
+describe('the push key', () => {
+  test('a VAPID public key (base64url, as npm run vapid-keys prints it) is the 65-byte point the phone wants', async () => {
+    const pair = (await crypto.subtle.generateKey({ name: 'ECDSA', namedCurve: 'P-256' }, true, ['sign', 'verify'])) as CryptoKeyPair
+    const raw = new Uint8Array(await crypto.subtle.exportKey('raw', pair.publicKey))
+    const text = btoa(String.fromCharCode(...raw)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '')
+    expect([...keyBytes(text)]).toEqual([...raw])
+    expect(raw).toHaveLength(65)
   })
 })
