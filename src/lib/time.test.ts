@@ -36,4 +36,8 @@ describe('attribution', () => {
     expect(attribution({ by: null, at: ago(3 * 24 * 60 * MIN), me: 'u1', names, now })).toBe('Updated · 3 days ago')
     expect(attribution({ by: 'gone', at: ago(MIN), me: 'u1', names, now })).toBe('Updated · 1 min ago')
   })
+
+  test('other verbs: planned, cooked', () => {
+    expect(attribution({ by: 'u2', at: ago(10 * MIN), me: 'u1', names, now, verb: 'Planned' })).toBe('Planned by Priya · 10 min ago')
+  })
 })

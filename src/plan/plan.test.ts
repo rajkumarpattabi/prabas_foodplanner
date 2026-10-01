@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'vitest'
 import type { Dish } from '../dishes/types.ts'
 import type { Item } from '../stock/types.ts'
-import { alternativeSides, comboFor, combosFor, isMainFor, swapSide, usableLeftovers } from './combos.ts'
+import { alternativeSides, comboFor, comboFromMeal, combosFor, isMainFor, swapSide, usableLeftovers } from './combos.ts'
 import { cookEvents, cookLines, dishNames } from './cook.ts'
 import { cookedNote, dishHistory } from './history.ts'
 import { nextMeal } from './mealTime.ts'
@@ -222,6 +222,16 @@ describe('combos', () => {
     const combo = comboFor(D.idli, dishesById, [lo])
     expect(combo.sides.map((s) => s.id)).toEqual(['chicken_kuzhambu', 'coconut_chutney'])
     expect(combo.leftover).toBe(lo)
+  })
+
+  test('a saved meal becomes its combo again; a deleted main gives none', () => {
+    const rice = dish('rice_dish', { catalog_key: 'sadam', type: 'variety_rice' })
+    const byId = new Map([...dishesById, ['rice_dish', rice]])
+    const combo = comboFromMeal(['vatha_kuzhambu', 'rice_dish', 'beans_poriyal', 'gone'], byId)!
+    expect(combo.main.id).toBe('vatha_kuzhambu')
+    expect(combo.base?.id).toBe('rice_dish')
+    expect(combo.sides.map((s) => s.id)).toEqual(['beans_poriyal'])
+    expect(comboFromMeal(['gone', 'beans_poriyal'], byId)).toBeNull()
   })
 
   test('only leftovers still good today, and not eaten', () => {

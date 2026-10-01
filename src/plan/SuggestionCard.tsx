@@ -10,6 +10,8 @@ interface Props {
   pref: ScriptPref
   /** The rediscovery card: styled apart, with "Bring back?". */
   rediscovery?: boolean
+  /** Shown at the top instead, as on a planned or cooked meal. */
+  header?: ReactNode
   /** Tap a side to swap it. */
   onSide: (side: Dish) => void
   /** The card's actions (plan, cook), in the lower part of the card. */
@@ -17,7 +19,7 @@ interface Props {
 }
 
 /** One combo: the main in both scripts, its sides, why it's suggested, and when it was last cooked. */
-export function SuggestionCard({ scored, pref, rediscovery, onSide, children }: Props) {
+export function SuggestionCard({ scored, pref, rediscovery, header, onSide, children }: Props) {
   const { combo, why, needs, cooked } = scored
   const [first, second] = namePair(combo.main, pref)
   return (
@@ -25,7 +27,7 @@ export function SuggestionCard({ scored, pref, rediscovery, onSide, children }: 
       aria-label={first}
       className={`rounded-2xl border p-4 ${rediscovery ? 'border-purple/30 bg-purple-fill' : 'border-line bg-surface'}`}
     >
-      {rediscovery && <p className="mb-2 text-sm font-semibold text-purple">Bring back?</p>}
+      {header ?? (rediscovery && <p className="mb-2 text-sm font-semibold text-purple">Bring back?</p>)}
       <div className="flex items-start gap-3">
         <DishIcon type={combo.main.type} size="lg" />
         <div className="min-w-0 flex-1">

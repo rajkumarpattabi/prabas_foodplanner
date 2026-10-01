@@ -52,7 +52,9 @@ export function MealProvider({ api, householdId, userId, children }: Props) {
       const row: MealRecord = current
         ? { ...current, ...change, updated_by: userId, updated_at: now }
         : { id, household_id: householdId, date, meal, ...change, created_by: userId, created_at: now, updated_by: userId, updated_at: now }
-      const { created_at: _c, updated_at: _u, ...insert } = row
+      // The insert is made as me (the database only allows that); if the other phone
+      // made this meal first, it's ignored and the update below applies.
+      const { created_at: _c, updated_at: _u, ...insert } = { ...row, created_by: userId }
       const ops: NewOp[] = [
         { kind: 'insert', table: 'meals', row: insert, userId },
         { kind: 'update', table: 'meals', match: { id }, patch: change, userId },

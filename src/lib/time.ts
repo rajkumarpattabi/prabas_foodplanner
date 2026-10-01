@@ -20,11 +20,13 @@ interface AttributionInput {
   /** Display names by user id. */
   names: ReadonlyMap<string, string>
   now?: number
+  /** What was done: "Updated" unless said otherwise ("Planned", "Cooked"). */
+  verb?: string
 }
 
-/** "Updated by you · 10 min ago", "Updated by Priya · 2 hours ago", or "Updated · 3 days ago". */
-export function attribution({ by, at, me, names, now }: AttributionInput): string {
+/** "Updated by you · 10 min ago", "Planned by Priya · 2 hours ago", or "Updated · 3 days ago". */
+export function attribution({ by, at, me, names, now, verb = 'Updated' }: AttributionInput): string {
   const who = by === me ? 'you' : by ? names.get(by) || null : null
   const when = relTime(at, now)
-  return `Updated${who ? ` by ${who}` : ''} · ${when}`
+  return `${verb}${who ? ` by ${who}` : ''} · ${when}`
 }

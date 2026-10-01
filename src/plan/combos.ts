@@ -125,6 +125,25 @@ export function alternativeSides(combo: Combo, replacing: Dish, dishes: readonly
   return out.slice(0, limit)
 }
 
+/**
+ * A saved meal as a combo again: its main, its rice, and its sides, in order. Null if
+ * the main dish has since been deleted (the meal's saved names still say what it was).
+ */
+export function comboFromMeal(
+  dishIds: readonly string[],
+  dishesById: ReadonlyMap<string, Dish>,
+  leftovers: readonly Leftover[] = [],
+): Combo | null {
+  const [mainId, ...rest] = dishIds
+  const main = dishesById.get(mainId)
+  if (!main) return null
+  const others = rest.map((id) => dishesById.get(id)).filter((d): d is Dish => d !== undefined)
+  const base = WITH_RICE.has(main.type) ? (others.find((d) => d.catalog_key === PLAIN_RICE_KEY) ?? null) : null
+  const sides = others.filter((d) => d !== base)
+  const leftover = leftovers.find((l) => l.dish_id !== null && sides.some((s) => s.id === l.dish_id)) ?? null
+  return { main, base, sides, leftover }
+}
+
 /** Swap one side for another, keeping its place. */
 export function swapSide(combo: Combo, replacing: Dish, next: Dish): Combo {
   return {

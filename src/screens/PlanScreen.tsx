@@ -3,18 +3,23 @@ import { Link } from 'react-router'
 import { SettingsIcon } from '../components/icons.tsx'
 import { Screen } from '../components/Screen.tsx'
 import { Segmented } from '../components/Segmented.tsx'
+import { useToast } from '../components/toastContext.ts'
 import { useDishes } from '../dishes/dishContext.ts'
 import { MEAL_LABELS } from '../dishes/labels.ts'
 import { MEALS, type Dish, type Meal } from '../dishes/types.ts'
 import { useReadyHousehold } from '../household/householdContext.ts'
-import { addDays, localDate } from '../lib/dates.ts'
+import { addDays, localDate, type LocalDate } from '../lib/dates.ts'
+import { namePair } from '../lib/names.ts'
+import { attribution } from '../lib/time.ts'
 import { AlternativesSheet } from '../plan/AlternativesSheet.tsx'
-import { combosFor, swapSide, usableLeftovers, type Combo } from '../plan/combos.ts'
+import { comboFromMeal, combosFor, swapSide, usableLeftovers, type Combo } from '../plan/combos.ts'
 import { useMeals } from '../plan/mealContext.ts'
 import { nextMeal } from '../plan/mealTime.ts'
-import { suggest, TOP_PICKS } from '../plan/score.ts'
+import { scoreCombo, suggest, TOP_PICKS, type PlanContext, type Scored } from '../plan/score.ts'
 import { SuggestionCard } from '../plan/SuggestionCard.tsx'
+import type { MealRecord } from '../plan/types.ts'
 import { usePlanContext } from '../plan/usePlanContext.ts'
+import { shortDate } from '../stock/history.ts'
 import { useStock } from '../stock/stockContext.ts'
 
 type Day = 'today' | 'tomorrow'
@@ -24,6 +29,9 @@ const DAY_OPTIONS: { value: Day; label: string }[] = [
   { value: 'tomorrow', label: 'Tomorrow' },
 ]
 const MEAL_OPTIONS = MEALS.map((m) => ({ value: m, label: MEAL_LABELS[m] }))
+
+const primary = 'min-h-12 flex-1 rounded-xl bg-leaf font-semibold text-bg'
+const secondary = 'min-h-12 flex-1 rounded-xl border border-line bg-surface font-medium'
 
 export function PlanScreen() {
   // The next meal to come (after dinner time, that's tomorrow's breakfast), read once
@@ -53,28 +61,88 @@ export function PlanScreen() {
         <Segmented label="Meal" options={MEAL_OPTIONS} value={meal} onChange={setMeal} />
       </div>
       {/* Keyed so swapped sides and paging start fresh for each day and meal. */}
-      <Suggestions key={`${date}:${meal}`} date={date} meal={meal} />
+      <MealPlan key={`${date}:${meal}`} date={date} meal={meal} today={today} />
     </Screen>
   )
 }
 
-function Suggestions({ date, meal }: { date: string; meal: Meal }) {
-  const { status: dishStatus, dishes } = useDishes()
+/** "tomorrow's breakfast", "today's lunch", or "dinner on 5 Oct". */
+function whenLabel(date: LocalDate, meal: Meal, today: LocalDate): string {
+  const m = MEAL_LABELS[meal].toLowerCase()
+  if (date === today) return `today's ${m}`
+  if (date === addDays(today, 1)) return `tomorrow's ${m}`
+  return `${m} on ${shortDate(date)}`
+}
+
+/**
+ * One meal of one day: its plan (or what was cooked) if there is one, otherwise
+ * suggestions to plan from. Once either phone plans it, both see the plan.
+ */
+function MealPlan({ date, meal, today }: { date: LocalDate; meal: Meal; today: LocalDate }) {
+  const { status: dishStatus, dishes, dishesById } = useDishes()
   const { status: stockStatus } = useStock()
-  const { status: mealStatus, leftovers } = useMeals()
+  const { status: mealStatus, leftovers, mealFor, planMeal, removeMeal, restoreMeal } = useMeals()
   const pref = useReadyHousehold().me.script_pref
+  const toast = useToast()
   const ctx = usePlanContext(date)
-  // Sides swapped by hand, by main dish.
+  const usable = useMemo(() => usableLeftovers(leftovers, date), [leftovers, date])
+  const existing = mealFor(date, meal)
+  const [changing, setChanging] = useState(false)
+  // Sides swapped by hand on suggestions, by main dish.
   const [swapped, setSwapped] = useState<ReadonlyMap<string, Combo>>(new Map())
   const [page, setPage] = useState(0)
-  const [swapping, setSwapping] = useState<{ combo: Combo; side: Dish } | null>(null)
+  const [swapping, setSwapping] = useState<{ combo: Combo; side: Dish; planned: boolean } | null>(null)
 
   const { picks, rediscovery } = useMemo(() => {
-    const combos = combosFor(meal, dishes, usableLeftovers(leftovers, date)).map((c) => swapped.get(c.main.id) ?? c)
+    const combos = combosFor(meal, dishes, usable).map((c) => swapped.get(c.main.id) ?? c)
     return suggest(combos, ctx, `${date}:${meal}`)
-  }, [meal, dishes, leftovers, date, swapped, ctx])
+  }, [meal, dishes, usable, date, swapped, ctx])
 
   if (dishStatus !== 'ready' || stockStatus !== 'ready' || mealStatus !== 'ready') return null
+
+  const when = whenLabel(date, meal, today)
+  const dishName = (d: Dish) => namePair(d, pref)[0]
+
+  const plan = (combo: Combo) => {
+    const before = existing ?? null
+    planMeal(date, meal, combo)
+    setChanging(false)
+    toast(`${dishName(combo.main)} planned for ${when}`, { undo: () => restoreMeal(date, meal, before) })
+  }
+
+  const sheet = swapping && (
+    <AlternativesSheet
+      combo={swapping.combo}
+      replacing={swapping.side}
+      onPick={(next) => {
+        const combo = swapSide(swapping.combo, swapping.side, next)
+        if (swapping.planned) plan(combo)
+        else setSwapped((m) => new Map(m).set(swapping.combo.main.id, combo))
+        setSwapping(null)
+      }}
+      onClose={() => setSwapping(null)}
+    />
+  )
+
+  if (existing && !changing) {
+    return (
+      <div className="mt-4">
+        <PlannedMeal
+          record={existing}
+          combo={comboFromMeal(existing.dish_ids, dishesById, usable)}
+          ctx={ctx}
+          onSide={(combo, side) => setSwapping({ combo, side, planned: true })}
+          onChange={() => setChanging(true)}
+          onRemove={() => {
+            removeMeal(date, meal)
+            toast(`Plan for ${when} removed`, { undo: () => restoreMeal(date, meal, existing) })
+          }}
+        />
+        {sheet}
+      </div>
+    )
+  }
+
   if (!picks.length && !rediscovery) {
     return (
       <p className="mt-8 rounded-2xl border border-dashed border-line p-6 text-center text-ink-muted">
@@ -85,18 +153,30 @@ function Suggestions({ date, meal }: { date: string; meal: Meal }) {
 
   const pages = Math.max(1, Math.ceil(picks.length / TOP_PICKS))
   const shown = picks.slice(page * TOP_PICKS, page * TOP_PICKS + TOP_PICKS)
-  const card = (s: (typeof picks)[number], isRediscovery = false) => (
+  const card = (s: Scored, isRediscovery = false) => (
     <SuggestionCard
       key={s.combo.main.id}
       scored={s}
       pref={pref}
       rediscovery={isRediscovery}
-      onSide={(side) => setSwapping({ combo: s.combo, side })}
-    />
+      onSide={(side) => setSwapping({ combo: s.combo, side, planned: false })}
+    >
+      <button type="button" onClick={() => plan(s.combo)} className={primary}>
+        Plan this
+      </button>
+    </SuggestionCard>
   )
 
   return (
     <div className="mt-4 space-y-3">
+      {changing && (
+        <div className="flex items-center justify-between gap-3 rounded-xl bg-leaf-fill px-3 py-2">
+          <p className="text-sm font-medium text-leaf-strong">Pick a new plan for {when}</p>
+          <button type="button" onClick={() => setChanging(false)} className="min-h-11 shrink-0 px-2 text-sm font-medium text-leaf-strong">
+            Keep the plan
+          </button>
+        </div>
+      )}
       {shown.map((s) => card(s))}
       {rediscovery && card(rediscovery, true)}
       {pages > 1 && (
@@ -108,17 +188,70 @@ function Suggestions({ date, meal }: { date: string; meal: Meal }) {
           {page + 1 < pages ? 'More ideas' : 'Back to the best ideas'}
         </button>
       )}
-      {swapping && (
-        <AlternativesSheet
-          combo={swapping.combo}
-          replacing={swapping.side}
-          onPick={(next) => {
-            setSwapped((m) => new Map(m).set(swapping.combo.main.id, swapSide(swapping.combo, swapping.side, next)))
-            setSwapping(null)
-          }}
-          onClose={() => setSwapping(null)}
-        />
-      )}
+      {sheet}
     </div>
+  )
+}
+
+/** A planned or cooked meal: who did it and when, and what's in it. */
+function PlannedMeal({
+  record,
+  combo,
+  ctx,
+  onSide,
+  onChange,
+  onRemove,
+}: {
+  record: MealRecord
+  combo: Combo | null
+  ctx: PlanContext
+  onSide: (combo: Combo, side: Dish) => void
+  onChange: () => void
+  onRemove: () => void
+}) {
+  const { me, members } = useReadyHousehold()
+  const names = new Map(members.map((m) => [m.userId, m.profile?.display_name ?? '']))
+  const cooked = record.status === 'cooked'
+  const byLine = cooked
+    ? attribution({ by: record.cooked_by, at: record.cooked_at!, me: me.user_id, names, verb: 'Cooked' })
+    : attribution({ by: record.updated_by ?? record.created_by, at: record.updated_at, me: me.user_id, names, verb: 'Planned' })
+  const header = (
+    <div className="mb-3">
+      <p className={`text-sm font-semibold ${cooked ? 'text-ink-muted' : 'text-leaf'}`}>{cooked ? 'Cooked' : 'Planned'}</p>
+      <p className="text-xs text-ink-muted">{byLine}</p>
+    </div>
+  )
+  const actions = !cooked && (
+    <>
+      <button type="button" onClick={onChange} className={secondary}>
+        Change
+      </button>
+      <button type="button" onClick={onRemove} className={secondary}>
+        Remove
+      </button>
+    </>
+  )
+
+  if (!combo) {
+    // The main dish has been deleted since: show the names saved with the meal.
+    return (
+      <article aria-label={record.dish_names[0]?.name_en ?? 'Meal'} className="rounded-2xl border border-line bg-surface p-4">
+        {header}
+        <p className="font-medium">{record.dish_names.map((n) => (me.script_pref === 'en_first' ? n.name_en : n.name_ta)).join(', ')}</p>
+        {actions && <div className="mt-4 flex gap-2">{actions}</div>}
+      </article>
+    )
+  }
+  return (
+    <SuggestionCard
+      scored={scoreCombo(combo, ctx)}
+      pref={me.script_pref}
+      header={header}
+      onSide={(side) => {
+        if (!cooked) onSide(combo, side)
+      }}
+    >
+      {actions}
+    </SuggestionCard>
   )
 }
