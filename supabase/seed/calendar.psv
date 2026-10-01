@@ -1,0 +1,93 @@
+# PRABAS restricted days (no non-veg). One entry per line; columns separated by "|".
+# After editing, run `npm run catalog` and commit.
+#
+# THESE DATES MUST BE CHECKED AGAINST A TRUSTED PANCHANGAM. They were read on 2026-10-01
+# from published Tamil calendars for Chennai; none were calculated or guessed. Every one is
+# seeded unverified, for someone at home to confirm in the app (Calendar, in Settings).
+# Where the sources disagreed, both days are listed: both stay veg-only until confirmed.
+#
+# Sources:
+#   drikpanchang      https://www.drikpanchang.com (Chennai: geoname-id 1264527)
+#   tamildailycalendar https://www.tamildailycalendar.com
+#   goldenchennai     https://calendar.goldenchennai.com
+#   tamildot          https://calendar.tamildot.com
+#   prokerala         https://www.prokerala.com/general/calendar/tamilcalendar.php
+#
+# type: amavasai, kiruthigai, puratasi. end_date: the last day, for puratasi only.
+# label: blank for the usual name. sources: who lists this date. note: anything to check.
+#
+date|end_date|type|label|sources|note
+
+# ---- Amavasai 2026 -----------------------------------------------------------------------
+2026-01-18||amavasai||drikpanchang, tamildailycalendar, goldenchennai|
+2026-02-17||amavasai||drikpanchang, tamildailycalendar, goldenchennai|
+2026-03-18||amavasai||drikpanchang, tamildailycalendar|goldenchennai says 19 Mar
+2026-03-19||amavasai||goldenchennai|drikpanchang and tamildailycalendar say 18 Mar
+2026-04-17||amavasai||drikpanchang, tamildailycalendar, goldenchennai|
+2026-05-16||amavasai||drikpanchang, tamildailycalendar, goldenchennai|
+2026-06-14||amavasai||drikpanchang, tamildailycalendar|goldenchennai says 15 Jun
+2026-06-15||amavasai||goldenchennai|drikpanchang and tamildailycalendar say 14 Jun
+2026-07-14||amavasai||drikpanchang, tamildailycalendar, goldenchennai|
+2026-08-12||amavasai||drikpanchang, tamildailycalendar, goldenchennai|
+2026-09-10||amavasai||drikpanchang, tamildailycalendar|goldenchennai says 11 Sep
+2026-09-11||amavasai||goldenchennai|drikpanchang and tamildailycalendar say 10 Sep
+2026-10-10||amavasai||drikpanchang, tamildailycalendar, goldenchennai|
+2026-11-08||amavasai||drikpanchang, tamildailycalendar|goldenchennai says 9 Nov
+2026-11-09||amavasai||goldenchennai|drikpanchang and tamildailycalendar say 8 Nov
+2026-12-08||amavasai||drikpanchang, tamildailycalendar, goldenchennai|
+2026-12-09||amavasai||goldenchennai|goldenchennai lists 8 and 9 Dec; the others only 8 Dec
+
+# ---- Amavasai 2027 -----------------------------------------------------------------------
+2027-01-07||amavasai||drikpanchang, tamildailycalendar|
+2027-02-06||amavasai||drikpanchang, tamildailycalendar|
+2027-03-07||amavasai||drikpanchang|drikpanchang lists 7 and 8 Mar; tamildailycalendar only 8 Mar
+2027-03-08||amavasai||drikpanchang, tamildailycalendar|
+2027-04-06||amavasai||drikpanchang, tamildailycalendar|
+2027-05-06||amavasai||drikpanchang, tamildailycalendar|
+2027-06-04||amavasai||drikpanchang, tamildailycalendar|
+2027-07-03||amavasai||drikpanchang|drikpanchang lists 3 and 4 Jul; tamildailycalendar only 4 Jul
+2027-07-04||amavasai||drikpanchang, tamildailycalendar|
+2027-08-02||amavasai||drikpanchang, tamildailycalendar|
+2027-08-31||amavasai||drikpanchang, tamildailycalendar|
+2027-09-29||amavasai||drikpanchang|drikpanchang lists 29 and 30 Sep; tamildailycalendar only 30 Sep
+2027-09-30||amavasai||drikpanchang, tamildailycalendar|
+2027-10-29||amavasai||drikpanchang, tamildailycalendar|
+2027-11-27||amavasai||drikpanchang|drikpanchang lists 27 and 28 Nov; tamildailycalendar only 28 Nov
+2027-11-28||amavasai||drikpanchang, tamildailycalendar|
+2027-12-27||amavasai||drikpanchang, tamildailycalendar|
+
+# ---- Kiruthigai 2026 ---------------------------------------------------------------------
+2026-01-27||kiruthigai||drikpanchang, tamildot|
+2026-02-23||kiruthigai||drikpanchang, tamildot|
+2026-02-24||kiruthigai||tamildot|tamildot lists 23 and 24 Feb; drikpanchang only 23 Feb
+2026-03-23||kiruthigai||drikpanchang, tamildot|
+2026-04-19||kiruthigai||drikpanchang, tamildot|
+2026-05-16||kiruthigai||drikpanchang, tamildot|
+2026-06-13||kiruthigai||drikpanchang, tamildot|
+2026-07-10||kiruthigai||drikpanchang, tamildot|
+2026-08-06||kiruthigai||tamildot|drikpanchang says 7 Aug
+2026-08-07||kiruthigai||drikpanchang|tamildot says 6 Aug
+2026-09-03||kiruthigai||drikpanchang, tamildot|
+2026-09-30||kiruthigai||drikpanchang, tamildot|
+2026-10-27||kiruthigai||drikpanchang, tamildot|
+2026-11-24||kiruthigai|Karthigai Deepam|drikpanchang, tamildot|
+2026-12-21||kiruthigai||drikpanchang, tamildot|
+
+# ---- Kiruthigai 2027 (one source found: please check each) --------------------------------
+2027-01-18||kiruthigai||drikpanchang|only one source found
+2027-02-14||kiruthigai||drikpanchang|only one source found
+2027-03-13||kiruthigai||drikpanchang|only one source found
+2027-04-09||kiruthigai||drikpanchang|only one source found
+2027-05-07||kiruthigai||drikpanchang|only one source found
+2027-06-03||kiruthigai||drikpanchang|only one source found
+2027-07-01||kiruthigai||drikpanchang|only one source found
+2027-07-28||kiruthigai||drikpanchang|only one source found
+2027-08-24||kiruthigai||drikpanchang|only one source found
+2027-09-21||kiruthigai||drikpanchang|only one source found
+2027-10-18||kiruthigai||drikpanchang|only one source found
+2027-11-14||kiruthigai||drikpanchang|only one source found
+2027-12-11||kiruthigai|Karthigai Deepam|drikpanchang|only one source found
+
+# ---- Puratasi ----------------------------------------------------------------------------
+2026-09-18|2026-10-17|puratasi||goldenchennai, prokerala|
+2027-09-17|2027-10-17|puratasi||prokerala|only one source found: Purattasi 1 on 17 Sep, Aippasi 1 on 18 Oct
