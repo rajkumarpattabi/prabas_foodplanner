@@ -4,7 +4,7 @@ import { Sheet } from '../components/Sheet.tsx'
 import { useToast } from '../components/toastContext.ts'
 import { useReadyHousehold } from '../household/householdContext.ts'
 import { namePair } from '../lib/names.ts'
-import type { ShopLine } from '../shop/build.ts'
+import type { NonVegNudge, ShopLine } from '../shop/build.ts'
 import { SECTION_TITLES, shareText, whatsappLink } from '../shop/share.ts'
 import { useShopping } from '../shop/shoppingContext.ts'
 import { SECTIONS } from '../shop/types.ts'
@@ -60,6 +60,9 @@ export function ShopScreen() {
               Nothing to buy. Things show up here when stock runs low, or a planned meal needs something.
             </p>
           )}
+          {list.nudges.map((n) => (
+            <NonVegCard key={n.date} nudge={n} />
+          ))}
           {SECTIONS.map((s) => {
             const lines = list.lines.filter((l) => l.section === s)
             if (!lines.length) return null
@@ -85,6 +88,41 @@ export function ShopScreen() {
       {adding && <AddToListSheet onClose={() => setAdding(false)} />}
       {sharing !== null && <ShareSheet text={sharing} onClose={() => setSharing(null)} />}
     </Screen>
+  )
+}
+
+/** Today or tomorrow is a non-veg day with nothing non-veg planned: one tap puts fish or meat on the list. */
+function NonVegCard({ nudge }: { nudge: NonVegNudge }) {
+  const { rows, addWant, removeRow } = useShopping()
+  const pref = useReadyHousehold().me.script_pref
+  const toast = useToast()
+  return (
+    <section aria-labelledby={`nonveg-${nudge.date}`} className="mt-4 rounded-2xl border border-red bg-red-fill p-3">
+      <h2 id={`nonveg-${nudge.date}`} className="font-medium text-red">
+        {nudge.day} is a non-veg day · fish or meat?
+      </h2>
+      <div className="mt-2 flex flex-wrap gap-2">
+        {nudge.items.map((item) => {
+          const [first] = namePair(item, pref)
+          const listed = rows.some((r) => r.item_id === item.id && r.kind === 'want' && !r.done_at)
+          return (
+            <button
+              key={item.id}
+              type="button"
+              disabled={listed}
+              aria-label={listed ? `${first} is on the list` : `Add ${first}`}
+              onClick={() => {
+                const row = addWant(item.id)
+                toast(`${first} added to the list`, { undo: () => removeRow(row.id) })
+              }}
+              className="min-h-11 rounded-full border border-line bg-surface px-4 text-sm font-medium text-ink disabled:opacity-60"
+            >
+              {listed ? `${first} ✓` : `+ ${first}`}
+            </button>
+          )
+        })}
+      </div>
+    </section>
   )
 }
 

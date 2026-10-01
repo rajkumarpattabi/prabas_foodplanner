@@ -130,4 +130,31 @@ describe('the Shop tab', () => {
     const sheet = screen.getByRole('dialog', { name: 'Share the list' })
     expect(within(sheet).getByRole('link', { name: 'Open WhatsApp' }).getAttribute('href')).toMatch(/^https:\/\/wa\.me\/\?text=Shopping/)
   })
+
+  test('tomorrow is a non-veg day: one tap puts fish or meat on the list', async () => {
+    const h = fakeHouseholdApi({ withHousehold: true })
+    h.server.addItem('kozhi', 'கோழி', 'Chicken', { category: 'meat', step: 1000 })
+    h.server.addItem('meen', 'மீன்', 'Fish', { category: 'fish', step: 500 })
+    renderApp({ path: '/shop', household: h, now: new Date(2026, 9, 10, 18) }) // Saturday
+    const card = await screen.findByRole('region', { name: 'Tomorrow is a non-veg day · fish or meat?' })
+    fireEvent.click(within(card).getByRole('button', { name: 'Add கோழி' }))
+    expect(within(await section('Added')).getByText('கோழி')).toBeTruthy()
+    await waitFor(() => expect(within(card).getByRole('button', { name: 'கோழி is on the list' })).toHaveProperty('disabled', true))
+  })
+
+  test('no card once something non-veg is planned for that day', async () => {
+    const h = fakeHouseholdApi({ withHousehold: true })
+    h.server.addItem('kozhi', 'கோழி', 'Chicken', { category: 'meat', step: 1000 })
+    h.server.otherPhonePutsMeal({ date: '2026-10-11', meal: 'lunch', dish_ids: ['hh-1:dish:muttai_kuzhambu'] })
+    renderApp({ path: '/shop', household: h, now: new Date(2026, 9, 10, 18) })
+    await screen.findByRole('button', { name: '+ Add item' })
+    expect(screen.queryByRole('region', { name: /non-veg day/ })).toBeNull()
+  })
+})
+
+describe('the Shop tab label', () => {
+  test('says how many things are on the list', async () => {
+    renderApp({ path: '/plan', household: fakeHouseholdApi({ withHousehold: true }), now: NOW })
+    expect(await screen.findByRole('link', { name: /^Shop, \d+ to buy$/ })).toBeTruthy()
+  })
 })

@@ -1,4 +1,5 @@
 import { NavLink } from 'react-router'
+import { useShoppingList } from '../shop/useShoppingList.ts'
 import { DishesIcon, PlanIcon, ShopIcon, StockIcon } from './icons.tsx'
 
 const TABS = [
@@ -7,6 +8,20 @@ const TABS = [
   { to: '/shop', label: 'Shop', Icon: ShopIcon },
   { to: '/dishes', label: 'Dishes', Icon: DishesIcon },
 ]
+
+/** How many things are on the shopping list, next to the Shop label (said aloud too). */
+function ShopCount() {
+  const { ready, lines } = useShoppingList()
+  if (!ready || !lines.length) return null
+  return (
+    <>
+      <span className="sr-only">, {lines.length} to buy</span>
+      <span aria-hidden="true" className="ml-1 rounded-full bg-turmeric-fill px-1.5 text-[11px] font-semibold text-turmeric-strong">
+        {lines.length}
+      </span>
+    </>
+  )
+}
 
 export function TabBar() {
   return (
@@ -34,7 +49,10 @@ export function TabBar() {
                   >
                     <Icon width={22} height={22} />
                   </span>
-                  {label}
+                  <span>
+                    {label}
+                    {to === '/shop' && <ShopCount />}
+                  </span>
                 </>
               )}
             </NavLink>

@@ -305,6 +305,25 @@ describe('file backup', () => {
     expect(household.server.batches().map((b) => b.id)).toEqual(['b-new'])
   })
 
+  test('shopping list round trip: lines come back, on the server and on this phone', async () => {
+    const household = fakeHouseholdApi({ withHousehold: true })
+    household.server.otherPhoneShops({ item_id: OKRA, quantity: 500 })
+    const { sync } = renderApp({ path: '/settings', household })
+    const exported = await exportJson()
+    expect(exported.tables.shopping_items).toHaveLength(1)
+
+    // After the backup: bought on the other phone.
+    household.server.otherPhoneShops({ id: household.server.shopping()[0].id, item_id: OKRA, done_at: new Date().toISOString(), done_by: 'user-2' })
+    await waitFor(async () => expect((await sync.db.shopping_items.toArray())[0]?.done_by).toBe('user-2'))
+
+    await importFile(JSON.stringify(exported))
+    fireEvent.click(await screen.findByRole('button', { name: 'Replace data' }))
+    expect(await screen.findByText('Backup restored')).toBeTruthy()
+
+    expect(household.server.shopping()).toMatchObject([{ item_id: OKRA, quantity: 500, done_at: null }])
+    await waitFor(async () => expect((await sync.db.shopping_items.toArray())[0]?.done_at).toBeNull())
+  })
+
   test('cancel leaves everything as it was', async () => {
     const household = fakeHouseholdApi({ withHousehold: true })
     renderApp({ path: '/settings', household })

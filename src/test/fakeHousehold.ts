@@ -535,6 +535,7 @@ export function fakeHouseholdApi({ withHousehold = false, offline = false }: Opt
         calendar_days: mine(calendar) as unknown as Row[],
         batches: mine(batches) as unknown as Row[],
         batch_events: mine(batchEvents) as unknown as Row[],
+        shopping_items: mine(shopping) as unknown as Row[],
       }
     }),
     restore: vi.fn(async (tables: Record<string, Row[]>) => {
@@ -607,6 +608,16 @@ export function fakeHouseholdApi({ withHousehold = false, offline = false }: Opt
           ...((tables.batch_events ?? []) as unknown as BatchEvent[]).map((e) => ({ ...e, household_id: hid })),
         ]
       }
+      // A backup made before Batch 7 has no shopping list. Lines come back only for items that are here.
+      if ('shopping_items' in tables) {
+        const hid = household.id
+        shopping = [
+          ...shopping.filter((s) => s.household_id !== hid),
+          ...(tables.shopping_items as unknown as ShoppingItem[])
+            .filter((s) => items.some((i) => i.id === s.item_id && i.household_id === hid))
+            .map((s) => ({ ...s, household_id: hid })),
+        ]
+      }
     }),
   } satisfies BackupApi
 
@@ -637,6 +648,13 @@ export function fakeHouseholdApi({ withHousehold = false, offline = false }: Opt
       meals: () => meals,
       calendar: () => calendar,
       batches: () => batches,
+      /** Another item in the household (chicken, fish), as the catalogue would have it. */
+      addItem(key: string, name_ta: string, name_en: string, extra: Partial<Item> = {}) {
+        const hid = household!.id
+        const row: Item = { ...starterItems(hid)[0], id: `${hid}:${key}`, name_ta, name_en, aliases: [], ...extra }
+        items = [...items, row]
+        return row
+      },
       shopping: () => shopping,
       /** The other phone (user-2) adds to the list, or ticks a line off; this phone hears about it live. */
       otherPhoneShops(row: Pick<ShoppingItem, 'item_id'> & Partial<ShoppingItem>) {
