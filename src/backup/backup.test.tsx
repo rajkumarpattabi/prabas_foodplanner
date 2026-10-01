@@ -26,6 +26,9 @@ async function exportJson(): Promise<Backup> {
 }
 
 const OKRA = 'hh-1:okra'
+const PONGAL = 'hh-1:dish:ven_pongal'
+const SAMBAR = 'hh-1:dish:kathirikkai_sambar'
+const CHUTNEY = 'hh-1:dish:thengai_chutney'
 
 function stockEvent(reason: 'bought' | 'used', quantity: number) {
   return {
@@ -127,6 +130,42 @@ describe('file backup', () => {
     fireEvent.click(await screen.findByRole('button', { name: 'Replace data' }))
     expect(await screen.findByText('Backup restored')).toBeTruthy()
     expect(household.server.events()).toHaveLength(2)
+  })
+
+  test('dish round trip: every dish comes back as it was, on the server and on this phone', async () => {
+    const household = fakeHouseholdApi({ withHousehold: true })
+    const { sync } = renderApp({ path: '/settings', household })
+    const exported = await exportJson()
+    expect(exported.tables.dishes).toHaveLength(4)
+
+    // After the backup: the chutney is deleted and pongal favourited on the other phone.
+    household.server.otherPhoneDeletesDish(CHUTNEY)
+    household.server.otherPhoneEditsDish(PONGAL, { is_favourite: true })
+    await waitFor(async () => expect(await sync.db.dishes.count()).toBe(3))
+
+    await importFile(JSON.stringify(exported))
+    fireEvent.click(await screen.findByRole('button', { name: 'Replace data' }))
+    expect(await screen.findByText('Backup restored')).toBeTruthy()
+
+    const ids = (rows: { id: unknown }[]) => rows.map((r) => String(r.id)).sort()
+    expect(ids(household.server.dishes())).toEqual(ids(exported.tables.dishes as { id: unknown }[]))
+    expect(household.server.dishes().find((d) => d.id === PONGAL)).toMatchObject({ is_favourite: false, side_ids: [SAMBAR, CHUTNEY] })
+    // Live updates can't carry a restore's deletions or replacements: the phone reads dishes again.
+    await waitFor(async () => expect(await sync.db.dishes.count()).toBe(4))
+    expect((await sync.db.dishes.get(PONGAL))?.is_favourite).toBe(false)
+  })
+
+  test('a backup from before dishes existed leaves dishes as they are', async () => {
+    const household = fakeHouseholdApi({ withHousehold: true })
+    renderApp({ path: '/settings', household })
+    const exported = await exportJson()
+    const { dishes: _d, ...batch2Tables } = exported.tables
+
+    household.server.otherPhoneDeletesDish(CHUTNEY)
+    await importFile(JSON.stringify({ ...exported, tables: batch2Tables }))
+    fireEvent.click(await screen.findByRole('button', { name: 'Replace data' }))
+    expect(await screen.findByText('Backup restored')).toBeTruthy()
+    expect(household.server.dishes()).toHaveLength(3)
   })
 
   test('cancel leaves everything as it was', async () => {

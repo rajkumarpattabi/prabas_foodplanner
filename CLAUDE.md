@@ -90,7 +90,9 @@ Colourful but calm. Colour always carries meaning. Never rely on colour alone; p
 - [x] Batch 2: Items and stock (done 2026-09-30: bilingual item list from a reviewed 198-item
       catalogue, event-based stock with exact undo, Stock screen, Add stock and item detail sheets,
       stock in backups and CSV. Migrations 0004–0005 applied. Two-phone test partly done.)
-- [ ] Batch 3: Dish library
+- [ ] Batch 3: Dish library (in progress: steps 1–8 of 9 done: dish rules, migrations 0006–0007
+      (120-dish catalogue, reviewed) applied, shared sync, Dishes screen, detail sheet, add/edit/delete,
+      backup. Next: step 9, check on both phones.)
 - [ ] Batch 4: Plan and cook
 - [ ] Batch 5: Tamil calendar rules
 - [ ] Batch 6: Prepared items and multi-day batches

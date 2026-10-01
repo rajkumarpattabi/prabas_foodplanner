@@ -326,6 +326,7 @@ export function fakeHouseholdApi({ withHousehold = false, offline = false }: Opt
         profiles: [...profiles.values()].filter((p) => memberIds.has(p.user_id)).map((p) => ({ ...p })),
         items: mine(items) as unknown as Row[],
         stock_events: mine(events) as unknown as Row[],
+        dishes: mine(dishes) as unknown as Row[],
       }
     }),
     restore: vi.fn(async (tables: Record<string, Row[]>) => {
@@ -349,6 +350,14 @@ export function fakeHouseholdApi({ withHousehold = false, offline = false }: Opt
         const others = <T extends { household_id: string }>(rows: T[]) => rows.filter((r) => r.household_id !== hid)
         items = [...others(items), ...(tables.items as unknown as Item[]).map((r) => ({ ...r, household_id: hid }))]
         events = [...others(events), ...((tables.stock_events ?? []) as unknown as StockEvent[]).map((r) => ({ ...r, household_id: hid }))]
+      }
+      // A backup made before Batch 3 has no dishes, and leaves them alone.
+      if ('dishes' in tables) {
+        const hid = household.id
+        dishes = [
+          ...dishes.filter((d) => d.household_id !== hid),
+          ...(tables.dishes as unknown as Dish[]).map((r) => ({ ...r, household_id: hid })),
+        ]
       }
     }),
   } satisfies BackupApi
