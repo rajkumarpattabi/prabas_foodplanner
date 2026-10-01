@@ -7,6 +7,7 @@ import { Screen } from '../components/Screen.tsx'
 import { Section } from '../components/Section.tsx'
 import { Segmented } from '../components/Segmented.tsx'
 import { HouseholdSection } from '../household/HouseholdSection.tsx'
+import { RemindersSection } from '../reminders/RemindersSection.tsx'
 import { useCalendar } from '../calendar/calendarContext.ts'
 import { toCheckCount } from '../calendar/view.ts'
 import { useClock } from '../lib/clock.ts'
@@ -78,6 +79,8 @@ export function SettingsScreen() {
       </Section>
 
       <FoodRulesSection />
+
+      <RemindersSection />
 
       <BackupSection />
 

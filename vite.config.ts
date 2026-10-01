@@ -39,6 +39,8 @@ export default defineConfig({
         globPatterns: ['**/*.{js,css,html,svg,png,ico,woff2}'],
         navigateFallback: `${BASE}index.html`,
         cleanupOutdatedCaches: true,
+        // Showing reminders, and opening the app when one is tapped (public/push-sw.js).
+        importScripts: ['push-sw.js'],
       },
     }),
   ],

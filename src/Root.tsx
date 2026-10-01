@@ -30,6 +30,7 @@ import { supabaseShoppingApi, type ShoppingApi } from './shop/api.ts'
 import { ShoppingProvider } from './shop/ShoppingProvider.tsx'
 import { supabaseReminderApi, type ReminderApi } from './reminders/api.ts'
 import { ReminderProvider } from './reminders/ReminderProvider.tsx'
+import { browserPush, PushDepsContext, type PushDeps } from './reminders/push.ts'
 import { supabaseStockApi, type StockApi } from './stock/api.ts'
 import { StockProvider } from './stock/StockProvider.tsx'
 import { useTheme } from './theme/themeContext.ts'
@@ -37,6 +38,8 @@ import { useTheme } from './theme/themeContext.ts'
 // One local database and outbox for the app's lifetime.
 const defaultSync = supabase ? createSync(supabaseExecutor(supabase)) : null
 // Google Drive, if this build has a Google client id.
+// Push reminders, if this build has a VAPID public key (see .env.example).
+const defaultPush: PushDeps | null = supabase ? browserPush(supabase, import.meta.env.VITE_VAPID_PUBLIC_KEY || null) : null
 const defaultDrive: DriveDeps | null = googleClientId
   ? { tokens: googleTokenSource(googleClientId), files: driveFiles() }
   : null
@@ -54,6 +57,7 @@ interface RootProps {
   backupApi?: BackupApi
   sync?: Sync
   drive?: DriveDeps | null
+  push?: PushDeps | null
 }
 
 /** Chooses what to show: setup problem, login, household setup, or the app. */
@@ -70,6 +74,7 @@ export function Root({
   backupApi,
   sync = defaultSync ?? undefined,
   drive = defaultDrive,
+  push = defaultPush,
 }: RootProps) {
   const api = useMemo(() => householdApi ?? (supabase ? supabaseHouseholdApi(supabase) : null), [householdApi])
   const stock = useMemo(() => stockApi ?? (supabase ? supabaseStockApi(supabase) : null), [stockApi])
@@ -91,7 +96,9 @@ export function Root({
     <AuthProvider auth={auth} onSignedOut={onSignedOut}>
       <BackupApiContext.Provider value={backup}>
         <DriveDepsContext.Provider value={drive}>
+          <PushDepsContext.Provider value={push}>
           <AuthGate api={api} apis={{ stock, dishes: dishesApi, meals: mealsApi, calendar: calApi, batches: batchesApi, shopping: shopApi, reminders: remindApi }} sync={sync} />
+          </PushDepsContext.Provider>
         </DriveDepsContext.Provider>
       </BackupApiContext.Provider>
     </AuthProvider>

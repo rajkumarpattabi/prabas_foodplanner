@@ -9,6 +9,8 @@ import { fakeAuth, fakeSession } from './fakeAuth.ts'
 import { fakeDrive } from './fakeDrive.ts'
 import { fakeHouseholdApi } from './fakeHousehold.ts'
 import type { DriveDeps } from '../backup/drive/driveBackup.ts'
+import type { PushDeps } from '../reminders/push.ts'
+import { fakePush } from './fakePush.ts'
 
 interface Options {
   path?: string
@@ -18,6 +20,8 @@ interface Options {
   sync?: Sync
   /** Google Drive; null for a build without a Google client id. */
   drive?: DriveDeps | null
+  /** This phone's push reminders. */
+  push?: PushDeps | null
   /** A fixed time for screens that work from "today" (the real clock if not given). */
   now?: Date
   /** A clock the test moves along (batches over several days). Wins over `now`. */
@@ -33,6 +37,7 @@ export function renderApp({
   household = fakeHouseholdApi({ withHousehold: true }),
   sync = createSync(household.execute, `prabas-test-${++dbCount}`),
   drive = fakeDrive().deps,
+  push = fakePush().deps,
   now,
   clock: movable,
 }: Options = {}) {
@@ -42,7 +47,7 @@ export function renderApp({
       <ClockContext.Provider value={clock}>
       <ThemeProvider>
         <ToastProvider>
-          <Root auth={auth} householdApi={household} stockApi={household.stockApi} dishApi={household.dishApi} mealApi={household.mealApi} calendarApi={household.calendarApi} batchApi={household.batchApi} shoppingApi={household.shoppingApi} reminderApi={household.reminderApi} backupApi={household.backupApi} sync={sync} drive={drive} />
+          <Root auth={auth} householdApi={household} stockApi={household.stockApi} dishApi={household.dishApi} mealApi={household.mealApi} calendarApi={household.calendarApi} batchApi={household.batchApi} shoppingApi={household.shoppingApi} reminderApi={household.reminderApi} backupApi={household.backupApi} sync={sync} drive={drive} push={push} />
         </ToastProvider>
       </ThemeProvider>
       </ClockContext.Provider>
