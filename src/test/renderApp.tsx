@@ -20,6 +20,8 @@ interface Options {
   drive?: DriveDeps | null
   /** A fixed time for screens that work from "today" (the real clock if not given). */
   now?: Date
+  /** A clock the test moves along (batches over several days). Wins over `now`. */
+  clock?: () => Date
 }
 
 let dbCount = 0
@@ -32,8 +34,9 @@ export function renderApp({
   sync = createSync(household.execute, `prabas-test-${++dbCount}`),
   drive = fakeDrive().deps,
   now,
+  clock: movable,
 }: Options = {}) {
-  const clock = now ? () => new Date(now) : () => new Date()
+  const clock = movable ?? (now ? () => new Date(now) : () => new Date())
   const result = render(
     <MemoryRouter initialEntries={[path]}>
       <ClockContext.Provider value={clock}>

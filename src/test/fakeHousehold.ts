@@ -572,6 +572,119 @@ export function fakeHouseholdApi({ withHousehold = false, offline = false }: Opt
       meals: () => meals,
       calendar: () => calendar,
       batches: () => batches,
+      /**
+       * Things made ahead, as the prepared catalogue gives them: ragi koozh (also a
+       * drink that uses 5 glasses of itself) and idli/dosa batter, with dosa using it.
+       * With 1 kg of ragi flour and 2 kg of idli rice in stock.
+       */
+      addPrepared() {
+        const hid = household!.id
+        const extra = starterItems(hid)[2]
+        const newItem = (key: string, name_ta: string, name_en: string, more: Partial<Item> = {}): Item => ({
+          ...extra,
+          id: `${hid}:${key}`,
+          name_ta,
+          name_en,
+          aliases: [],
+          is_staple: false,
+          ...more,
+        })
+        const added = [
+          newItem('ragi_mavu', 'கேழ்வரகு மாவு', 'Ragi flour'),
+          newItem('idli_arisi', 'இட்லி அரிசி', 'Idli rice'),
+          newItem('mor', 'மோர்', 'Buttermilk', { category: 'dairy', unit: 'ml', display_unit: 'ml', shelf_life_days: 2, step: 500 }),
+        ]
+        items = [...items, ...added]
+        events = [
+          ...events,
+          ...[
+            ['ragi_mavu', 1000],
+            ['idli_arisi', 2000],
+          ].map(([key, quantity], i): StockEvent => ({
+            id: `prep-stock-${i}`,
+            household_id: hid,
+            item_id: `${hid}:${key}`,
+            kind: 'delta',
+            quantity: quantity as number,
+            reason: 'bought',
+            batch_id: null,
+            expires_on: null,
+            form: 'whole',
+            note: null,
+            occurred_at: T0,
+            created_by: 'user-2',
+            created_at: T0,
+          })),
+        ]
+        const base = dishes[0]
+        const dish = (key: string, more: Partial<Dish>): Dish => ({ ...base, id: `${hid}:dish:${key}`, catalog_key: key, aliases: [], side_ids: [], ingredients: [], ...more })
+        dishes = [
+          ...dishes,
+          dish('ragi_koozh', {
+            name_ta: 'கேழ்வரகுக் கூழ்',
+            name_en: 'Ragi koozh',
+            type: 'drink',
+            meals: ['breakfast', 'lunch'],
+            ingredients: [{ item_id: `${hid}:mor`, quantity: 1000 }],
+            prep_plan: {
+              stages: [
+                { key: 'soak', hours: 9, action: true, takes_ingredients: true },
+                { key: 'cook', hours: 1, action: true },
+                { key: 'ferment', hours: 24, action: false, adjustable: true },
+              ],
+              yield: 10,
+              unit: 'glasses',
+              keeps_days: 3,
+              keep_going: false,
+              ingredients: [{ item_id: `${hid}:ragi_mavu`, quantity: 400 }],
+            },
+            uses_prepared: [{ dish_id: `${hid}:dish:ragi_koozh`, quantity: 5 }],
+          }),
+          dish('idli_dosa_batter', {
+            name_ta: 'இட்லி தோசை மாவு',
+            name_en: 'Idli/dosa batter',
+            type: 'prepared',
+            meals: [],
+            prep_plan: {
+              stages: [
+                { key: 'soak', hours: 5, action: true, takes_ingredients: true },
+                { key: 'grind', hours: 0, action: true },
+                { key: 'ferment', hours: 10, action: false, adjustable: true },
+              ],
+              yield: 4,
+              unit: 'meals',
+              keeps_days: 3,
+              keep_going: true,
+              ingredients: [{ item_id: `${hid}:idli_arisi`, quantity: 2000 }],
+            },
+          }),
+          dish('dosai', {
+            name_ta: 'தோசை',
+            name_en: 'Dosa',
+            meals: ['breakfast', 'dinner'],
+            uses_prepared: [{ dish_id: `${hid}:dish:idli_dosa_batter`, quantity: 1 }],
+          }),
+        ]
+      },
+      /** A batch already started (by the other phone), with what's happened to it so far. */
+      addBatch(batch: Pick<Batch, 'id' | 'dish_id' | 'name_ta' | 'name_en' | 'stages' | 'planned_start' | 'yield' | 'unit' | 'keeps_days'>, done: (Pick<BatchEvent, 'kind' | 'occurred_at'> & Partial<BatchEvent>)[] = []) {
+        const hid = household!.id
+        batches = [...batches, { household_id: hid, ready_by: null, created_by: 'user-2', created_at: T0, ...batch }]
+        batchEvents = [
+          ...batchEvents,
+          ...done.map((e, i): BatchEvent => ({
+            id: `${batch.id}-ev-${i}`,
+            household_id: hid,
+            batch_id: batch.id,
+            stage: null,
+            quantity: null,
+            undoes: null,
+            created_by: 'user-2',
+            created_at: e.occurred_at,
+            ...e,
+          })),
+        ]
+      },
       batchEvents: () => batchEvents,
       /** The other phone (user-2) records something on a batch; this phone hears about it live. */
       otherPhoneAddsBatchEvent(event: Pick<BatchEvent, 'batch_id' | 'kind'> & Partial<BatchEvent>) {

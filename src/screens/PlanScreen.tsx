@@ -23,6 +23,8 @@ import { scoreCombo, suggest, TOP_PICKS, type PlanContext, type Scored } from '.
 import { SuggestionCard } from '../plan/SuggestionCard.tsx'
 import type { MealRecord } from '../plan/types.ts'
 import { usePlanContext } from '../plan/usePlanContext.ts'
+import { InProgress } from '../prepared/InProgress.tsx'
+import { useNow } from '../prepared/useNow.ts'
 import { shortDate } from '../stock/history.ts'
 import { useStock } from '../stock/stockContext.ts'
 
@@ -41,6 +43,7 @@ export function PlanScreen() {
   // The next meal to come (after dinner time, that's tomorrow's breakfast), read once
   // when the screen opens.
   const clock = useClock()
+  const now = useNow()
   const [start] = useState(() => {
     const now = clock()
     const next = nextMeal(now)
@@ -61,12 +64,14 @@ export function PlanScreen() {
         </Link>
       }
     >
-      <div className="space-y-2">
-        <Segmented label="Day" options={DAY_OPTIONS} value={day} onChange={setDay} />
-        <Segmented label="Meal" options={MEAL_OPTIONS} value={meal} onChange={setMeal} />
-      </div>
-      {/* Keyed so swapped sides and paging start fresh for each day and meal. */}
-      <MealPlan key={`${date}:${meal}`} date={date} meal={meal} today={today} />
+      <InProgress now={now}>
+        <div className="space-y-2">
+          <Segmented label="Day" options={DAY_OPTIONS} value={day} onChange={setDay} />
+          <Segmented label="Meal" options={MEAL_OPTIONS} value={meal} onChange={setMeal} />
+        </div>
+        {/* Keyed so swapped sides and paging start fresh for each day and meal. */}
+        <MealPlan key={`${date}:${meal}`} date={date} meal={meal} today={today} />
+      </InProgress>
     </Screen>
   )
 }
