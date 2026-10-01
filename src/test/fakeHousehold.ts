@@ -485,6 +485,8 @@ export function fakeHouseholdApi({ withHousehold = false, offline = false }: Opt
         meals: mine(meals) as unknown as Row[],
         leftovers: mine(leftovers) as unknown as Row[],
         calendar_days: mine(calendar) as unknown as Row[],
+        batches: mine(batches) as unknown as Row[],
+        batch_events: mine(batchEvents) as unknown as Row[],
       }
     }),
     restore: vi.fn(async (tables: Record<string, Row[]>) => {
@@ -541,6 +543,20 @@ export function fakeHouseholdApi({ withHousehold = false, offline = false }: Opt
         calendar = [
           ...calendar.filter((d) => d.household_id !== hid),
           ...(tables.calendar_days as unknown as CalendarDay[]).map((d) => ({ ...d, household_id: hid })),
+        ]
+      }
+      // A backup made before Batch 6 has no batches. A batch keeps its dish only if that dish is here.
+      if ('batches' in tables) {
+        const hid = household.id
+        const restored = (tables.batches as unknown as Batch[]).map((b) => ({
+          ...b,
+          household_id: hid,
+          dish_id: b.dish_id && dishes.some((d) => d.id === b.dish_id && d.household_id === hid) ? b.dish_id : null,
+        }))
+        batches = [...batches.filter((b) => b.household_id !== hid), ...restored]
+        batchEvents = [
+          ...batchEvents.filter((e) => e.household_id !== hid),
+          ...((tables.batch_events ?? []) as unknown as BatchEvent[]).map((e) => ({ ...e, household_id: hid })),
         ]
       }
     }),

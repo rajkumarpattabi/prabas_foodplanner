@@ -246,6 +246,65 @@ describe('file backup', () => {
     expect(household.server.calendar()).toHaveLength(2)
   })
 
+  test('batches round trip: a batch and its glasses come back, on the server and on this phone', async () => {
+    const household = fakeHouseholdApi({ withHousehold: true })
+    household.server.addPrepared()
+    const ragi = 'hh-1:dish:ragi_koozh'
+    household.server.addBatch(
+      {
+        id: 'b-ragi',
+        dish_id: ragi,
+        name_ta: 'கேழ்வரகுக் கூழ்',
+        name_en: 'Ragi koozh',
+        stages: [{ key: 'soak', hours: 9, action: true, takes_ingredients: true }],
+        planned_start: '2026-10-05T15:30:00.000Z',
+        yield: 10,
+        unit: 'glasses',
+        keeps_days: 3,
+      },
+      [{ kind: 'done', stage: 0, occurred_at: '2026-10-05T15:30:00.000Z' }],
+    )
+    const { sync } = renderApp({ path: '/settings', household })
+    const exported = await exportJson()
+    expect(exported.tables.batches).toHaveLength(1)
+    expect(exported.tables.batch_events).toHaveLength(1)
+
+    // After the backup: two glasses on the other phone.
+    household.server.otherPhoneAddsBatchEvent({ batch_id: 'b-ragi', kind: 'used', quantity: 2 })
+    await waitFor(async () => expect(await sync.db.batch_events.count()).toBe(2))
+
+    await importFile(JSON.stringify(exported))
+    fireEvent.click(await screen.findByRole('button', { name: 'Replace data' }))
+    expect(await screen.findByText('Backup restored')).toBeTruthy()
+
+    expect(household.server.batchEvents().map((e) => e.kind)).toEqual(['done'])
+    expect(household.server.batches()[0]).toMatchObject({ id: 'b-ragi', dish_id: ragi })
+    await waitFor(async () => expect((await sync.db.batch_events.toArray()).map((e) => e.kind)).toEqual(['done']))
+  })
+
+  test('a backup from before batches existed leaves them as they are', async () => {
+    const household = fakeHouseholdApi({ withHousehold: true })
+    household.server.addPrepared()
+    renderApp({ path: '/settings', household })
+    const exported = await exportJson()
+    const { batches: _b, batch_events: _e, ...batch5Tables } = exported.tables
+    household.server.addBatch({
+      id: 'b-new',
+      dish_id: 'hh-1:dish:idli_dosa_batter',
+      name_ta: 'இட்லி தோசை மாவு',
+      name_en: 'Idli/dosa batter',
+      stages: [{ key: 'soak', hours: 5, action: true, takes_ingredients: true }],
+      planned_start: '2026-10-05T10:30:00.000Z',
+      yield: 4,
+      unit: 'meals',
+      keeps_days: 3,
+    })
+    await importFile(JSON.stringify({ ...exported, tables: batch5Tables }))
+    fireEvent.click(await screen.findByRole('button', { name: 'Replace data' }))
+    expect(await screen.findByText('Backup restored')).toBeTruthy()
+    expect(household.server.batches().map((b) => b.id)).toEqual(['b-new'])
+  })
+
   test('cancel leaves everything as it was', async () => {
     const household = fakeHouseholdApi({ withHousehold: true })
     renderApp({ path: '/settings', household })

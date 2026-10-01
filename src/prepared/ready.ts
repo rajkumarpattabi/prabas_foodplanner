@@ -1,7 +1,9 @@
 // What's ready to use now, per prepared item, for suggestions and cooking.
 
-import { ageDays, type BatchState } from './batchState.ts'
-import type { BatchUnit } from './types.ts'
+import { daysBetween, localDate } from '../lib/dates.ts'
+import type { Level } from '../stock/urgency.ts'
+import { ageDays, batchState, type BatchState } from './batchState.ts'
+import type { Batch, BatchEvent, BatchUnit } from './types.ts'
 
 export interface ReadyPrepared {
   dish_id: string
@@ -41,4 +43,25 @@ export function takeFromBatches(ready: ReadyPrepared | undefined, quantity: numb
     left -= take
   }
   return out
+}
+
+export interface ReadyBatchRow {
+  state: BatchState
+  /** Red: use today, or past its time. Amber: by tomorrow. Green: later. */
+  level: Level
+  label: string
+}
+
+/** Batches ready to use, or past their time with some left, soonest to spoil first. */
+export function readyBatchRows(batches: readonly Batch[], events: readonly BatchEvent[], now: Date): ReadyBatchRow[] {
+  return batches
+    .map((b) => batchState(b, events, now))
+    .filter((s) => s.phase === 'ready' || s.phase === 'expired')
+    .map((state) => {
+      const d = daysBetween(localDate(now), localDate(state.expiresAt))
+      const [level, label]: [Level, string] =
+        state.phase === 'expired' ? ['red', 'Past its time · check'] : d <= 0 ? ['red', 'Use today'] : d === 1 ? ['amber', 'Use by tomorrow'] : ['green', `Keeps ${d} days`]
+      return { state, level, label }
+    })
+    .sort((a, b) => a.state.expiresAt.getTime() - b.state.expiresAt.getTime())
 }
