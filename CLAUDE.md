@@ -105,7 +105,12 @@ Colourful but calm. Colour always carries meaning. Never rely on colour alone; p
       event-based batches with stage prompts, planning backwards, late-step shifting, learned ferment time,
       keep it going, the In progress strip on Plan, cooking from batches, ready batches on Stock, batches in
       backups. Migrations 0011–0012 applied. Tested on both phones.)
-- [ ] Batch 7: Shopping list
+- [x] Batch 7: Shopping list (done 2026-10-01: a list that builds itself from running-low stock, planned
+      meals and batches over the next 3 days, and a separate "Might need" for likely meals; one line per item
+      with its reasons; ticking off adds to stock with the usual amount and undo; skip, add by hand in both
+      scripts, share to WhatsApp; fish or meat card for non-veg days; no meat, fish or egg listed in
+      Puratasi or on veg-only days; tab count; shopping list in backups. Migration 0013 applied. Tested on
+      both phones.)
 - [ ] Batch 8: Reminders
 - [ ] Batch 9: Nutrition
 - [ ] Batch 10: Bill scanning
