@@ -211,6 +211,41 @@ describe('file backup', () => {
     expect(household.server.meals()).toHaveLength(1)
   })
 
+  test('calendar round trip: confirmed and unverified days come back, on the server and on this phone', async () => {
+    const household = fakeHouseholdApi({ withHousehold: true })
+    household.server.addCalendarDays(
+      { date: '2026-11-08', type: 'amavasai', verified: true },
+      { date: '2026-11-09', type: 'amavasai', note: 'Sources: goldenchennai.' },
+    )
+    const { sync } = renderApp({ path: '/settings', household })
+    const exported = await exportJson()
+    expect(exported.tables.calendar_days).toHaveLength(2)
+
+    // After the backup: the 9 Nov one is confirmed on the other phone.
+    household.server.otherPhoneEditsCalendarDay(household.server.calendar()[1].id, { verified: true })
+    await waitFor(async () => expect((await sync.db.calendar_days.toArray()).filter((d) => d.verified)).toHaveLength(2))
+
+    await importFile(JSON.stringify(exported))
+    fireEvent.click(await screen.findByRole('button', { name: 'Replace data' }))
+    expect(await screen.findByText('Backup restored')).toBeTruthy()
+
+    expect(household.server.calendar().find((d) => d.date === '2026-11-09')).toMatchObject({ verified: false, note: 'Sources: goldenchennai.' })
+    await waitFor(async () => expect((await sync.db.calendar_days.toArray()).filter((d) => d.verified)).toHaveLength(1))
+  })
+
+  test('a backup from before the calendar existed leaves it as it is', async () => {
+    const household = fakeHouseholdApi({ withHousehold: true })
+    household.server.addCalendarDays({ date: '2026-11-08', type: 'amavasai' })
+    renderApp({ path: '/settings', household })
+    const exported = await exportJson()
+    const { calendar_days: _c, ...batch4Tables } = exported.tables
+    household.server.addCalendarDays({ date: '2026-12-02', type: 'family_custom', label: "Thatha's day", verified: true })
+    await importFile(JSON.stringify({ ...exported, tables: batch4Tables }))
+    fireEvent.click(await screen.findByRole('button', { name: 'Replace data' }))
+    expect(await screen.findByText('Backup restored')).toBeTruthy()
+    expect(household.server.calendar()).toHaveLength(2)
+  })
+
   test('cancel leaves everything as it was', async () => {
     const household = fakeHouseholdApi({ withHousehold: true })
     renderApp({ path: '/settings', household })

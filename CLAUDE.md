@@ -97,7 +97,9 @@ Colourful but calm. Colour always carries meaning. Never rely on colour alone; p
       why lines, bring-back card, plan/change/remove synced across phones, Cook this with editable
       deductions and exact undo, leftovers (Ready to eat), cooking history, meals in backups and CSV.
       Migration 0008 applied. Tested on both phones.)
-- [ ] Batch 5: Tamil calendar rules
+- [ ] Batch 5: Tamil calendar rules (in progress: steps 1-7 of 8 done: rules and non-veg rhythm,
+      migrations 0009-0010 applied (64 dates from published calendars, unverified), calendar sync, Plan tab
+      follows the rules, Calendar screen, calendar in backups. Next: step 8, check on both phones.)
 - [ ] Batch 6: Prepared items and multi-day batches
 - [ ] Batch 7: Shopping list
 - [ ] Batch 8: Reminders
