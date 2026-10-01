@@ -49,14 +49,15 @@ export function toggle<T>(list: readonly T[], value: T, order: readonly T[]): T[
   return order.filter((v) => next.includes(v))
 }
 
-type Checked = { values: Required<DishPatch> } | { error: string }
+type Checked = { values: Required<Omit<DishPatch, 'prep_plan' | 'uses_prepared'>> } | { error: string }
 
 function check(form: DishForm): Checked {
   const name_ta = form.name_ta.trim()
   const name_en = form.name_en.trim()
   if (!name_ta || !name_en) return { error: 'Both names are needed.' }
   if (name_ta.length > 80 || name_en.length > 80) return { error: 'Names can be up to 80 letters.' }
-  if (!form.meals.length) return { error: 'Pick at least one meal.' }
+  // Something made ahead (batter) isn't a meal on its own.
+  if (!form.meals.length && form.type !== 'prepared') return { error: 'Pick at least one meal.' }
   const aliases = parseAliases(form.aliases)
   if (aliases.length > 40) return { error: 'Up to 40 other names.' }
   if (form.side_ids.length > 10) return { error: 'Up to 10 sides.' }

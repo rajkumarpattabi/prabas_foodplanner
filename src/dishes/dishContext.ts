@@ -23,6 +23,8 @@ export type DishPatch = Partial<
     | 'is_kids_favourite'
     | 'dont_suggest'
     | 'notes'
+    | 'prep_plan'
+    | 'uses_prepared'
   >
 >
 

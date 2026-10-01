@@ -23,6 +23,7 @@ import { scoreCombo, suggest, TOP_PICKS, type PlanContext, type Scored } from '.
 import { SuggestionCard } from '../plan/SuggestionCard.tsx'
 import type { MealRecord } from '../plan/types.ts'
 import { usePlanContext } from '../plan/usePlanContext.ts'
+import { useBatches } from '../prepared/batchContext.ts'
 import { InProgress } from '../prepared/InProgress.tsx'
 import { useNow } from '../prepared/useNow.ts'
 import { shortDate } from '../stock/history.ts'
@@ -93,6 +94,7 @@ function MealPlan({ date, meal, today }: { date: LocalDate; meal: Meal; today: L
   const { status: stockStatus } = useStock()
   const { status: mealStatus, leftovers, mealFor, planMeal, removeMeal, restoreMeal } = useMeals()
   const { status: calendarStatus, days } = useCalendar()
+  const { status: batchStatus } = useBatches()
   const pref = useReadyHousehold().me.script_pref
   const toast = useToast()
   // The family's food rules for this day: veg only (and why), or a non-veg day.
@@ -112,7 +114,7 @@ function MealPlan({ date, meal, today }: { date: LocalDate; meal: Meal; today: L
     return suggest(combos, ctx, `${date}:${meal}`)
   }, [meal, dishes, usable, date, swapped, ctx, day.vegOnly])
 
-  if (dishStatus !== 'ready' || stockStatus !== 'ready' || mealStatus !== 'ready' || calendarStatus !== 'ready') return null
+  if (dishStatus !== 'ready' || stockStatus !== 'ready' || mealStatus !== 'ready' || calendarStatus !== 'ready' || batchStatus !== 'ready') return null
 
   const when = whenLabel(date, meal, today)
   const dishName = (d: Dish) => namePair(d, pref)[0]

@@ -14,6 +14,9 @@ import { DishEditor } from './DishEditor.tsx'
 import { ingredientLines, type Availability } from './ingredients.ts'
 import { MEAL_LABELS, TAG_LABELS, TYPE_LABELS } from './labels.ts'
 import type { Dish } from './types.ts'
+import { stagesText } from '../prepared/catalog.ts'
+import { amount, preparedUses, prepPlan } from '../prepared/plan.ts'
+import type { Item } from '../stock/types.ts'
 
 const AVAILABILITY: Record<Availability, { label: string; className: string }> = {
   enough: { label: 'In stock', className: 'bg-leaf-fill text-leaf-strong' },
@@ -133,32 +136,17 @@ function DishDetail({ dish, onOpen }: { dish: Dish; onOpen: (id: string) => void
         )}
       </section>
 
-      <section className="mt-5">
-        <h3 className="text-sm font-semibold text-ink-muted">Ingredients for 5</h3>
-        {stockStatus !== 'ready' && lines.length ? (
-          <p className="mt-1 text-sm text-ink-muted">Loading ingredients…</p>
-        ) : lines.length ? (
-          <ul className="mt-2 divide-y divide-line rounded-xl border border-line" aria-label="Ingredients">
-            {lines.map(({ ingredient, item, availability }) => {
-              const a = AVAILABILITY[availability]
-              return (
-                <li key={ingredient.item_id} className="flex items-center gap-3 px-3 py-2">
-                  <span className="min-w-0 flex-1">
-                    <span className="block truncate">{item ? namePair(item, pref)[0] : 'An item no longer in your list'}</span>
-                    <span className="block text-sm text-ink-muted">
-                      {item ? formatQuantity(ingredient.quantity, item) : ''}
-                      {ingredient.optional ? `${item ? ' · ' : ''}optional` : ''}
-                    </span>
-                  </span>
-                  {item && <span className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-medium ${a.className}`}>{a.label}</span>}
-                </li>
-              )
-            })}
-          </ul>
-        ) : (
-          <p className="mt-1 text-sm text-ink-muted">No ingredients yet.</p>
-        )}
-      </section>
+      <MadeWith dish={dish} onOpen={onOpen} />
+
+      {/* Batter has only its batch ingredients (below); koozh adds buttermilk when served. */}
+      {!(lines.length === 0 && prepPlan(dish)) && (
+        <section className="mt-5">
+          <h3 className="text-sm font-semibold text-ink-muted">{prepPlan(dish) ? 'Added when serving, for 5' : 'Ingredients for 5'}</h3>
+          <IngredientList lines={lines} loading={stockStatus !== 'ready'} label="Ingredients" />
+        </section>
+      )}
+
+      <MadeAhead dish={dish} itemsById={itemsById} />
 
       {dish.tags.length > 0 && (
         <section className="mt-5">
@@ -197,6 +185,99 @@ function DishDetail({ dish, onOpen }: { dish: Dish; onOpen: (id: string) => void
         ))}
       </section>
     </div>
+  )
+}
+
+function IngredientList({ lines, loading, label }: { lines: ReturnType<typeof ingredientLines>; loading: boolean; label: string }) {
+  const pref = useReadyHousehold().me.script_pref
+  if (loading && lines.length) return <p className="mt-1 text-sm text-ink-muted">Loading ingredients…</p>
+  if (!lines.length) return <p className="mt-1 text-sm text-ink-muted">No ingredients yet.</p>
+  return (
+    <ul className="mt-2 divide-y divide-line rounded-xl border border-line" aria-label={label}>
+      {lines.map(({ ingredient, item, availability }) => {
+        const a = AVAILABILITY[availability]
+        return (
+          <li key={ingredient.item_id} className="flex items-center gap-3 px-3 py-2">
+            <span className="min-w-0 flex-1">
+              <span className="block truncate">{item ? namePair(item, pref)[0] : 'An item no longer in your list'}</span>
+              <span className="block text-sm text-ink-muted">
+                {item ? formatQuantity(ingredient.quantity, item) : ''}
+                {ingredient.optional ? `${item ? ' · ' : ''}optional` : ''}
+              </span>
+            </span>
+            {item && <span className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-medium ${a.className}`}>{a.label}</span>}
+          </li>
+        )
+      })}
+    </ul>
+  )
+}
+
+/** What it's made from ahead of time: "1 meal of idli/dosa batter". A koozh uses its own batch. */
+function MadeWith({ dish, onOpen }: { dish: Dish; onOpen: (id: string) => void }) {
+  const { dishesById } = useDishes()
+  const pref = useReadyHousehold().me.script_pref
+  const uses = preparedUses(dish)
+  if (!uses.length) return null
+  return (
+    <section className="mt-5">
+      <h3 className="text-sm font-semibold text-ink-muted">Made with</h3>
+      <ul className="mt-2 space-y-1" aria-label="Made with">
+        {uses.map((u) => {
+          const used = dishesById.get(u.dish_id)
+          const plan = used ? prepPlan(used) : null
+          const qty = amount(u.quantity, plan?.unit ?? 'meals')
+          if (!used) return <li key={u.dish_id} className="text-sm text-ink-muted">{qty} of something no longer in your dishes</li>
+          if (used.id === dish.id) return <li key={u.dish_id} className="text-sm">{qty} of a batch for each meal</li>
+          return (
+            <li key={u.dish_id}>
+              <button type="button" onClick={() => onOpen(used.id)} className="min-h-11 text-left text-sm font-medium text-leaf">
+                {qty} of {namePair(used, pref)[0]}
+                {u.prefers_aged ? ' · better a day or two old' : ''}
+                {u.optional ? ' · optional' : ''} ›
+              </button>
+            </li>
+          )
+        })}
+      </ul>
+    </section>
+  )
+}
+
+/** How it's made ahead: the stages, what a batch makes, how long it keeps, and keep it going. */
+function MadeAhead({ dish, itemsById }: { dish: Dish; itemsById: ReadonlyMap<string, Item> }) {
+  const { updateDish } = useDishes()
+  const { status, eventsByItem } = useStock()
+  const pref = useReadyHousehold().me.script_pref
+  const toast = useToast()
+  const plan = prepPlan(dish)
+  const lines = useMemo(() => ingredientLines(plan?.ingredients ?? [], itemsById, eventsByItem), [plan?.ingredients, itemsById, eventsByItem])
+  if (!plan) return null
+  const [first] = namePair(dish, pref)
+  const setKeepGoing = (on: boolean) => {
+    const patch = (v: boolean) => ({ prep_plan: { ...(dish.prep_plan as object), keep_going: v } })
+    updateDish(dish.id, patch(on))
+    toast(on ? `${first}: you'll be asked to start the next` : `${first}: no prompt for the next`, { undo: () => updateDish(dish.id, patch(!on)) })
+  }
+  return (
+    <section className="mt-5" aria-labelledby={`made-ahead-${dish.id}`}>
+      <h3 id={`made-ahead-${dish.id}`} className="text-sm font-semibold text-ink-muted">
+        Made ahead
+      </h3>
+      <p className="mt-1 text-sm">{stagesText(plan.stages)}</p>
+      <p className="text-sm text-ink-muted">
+        One batch makes {amount(plan.yield, plan.unit)} · keeps {plan.keeps_days} {plan.keeps_days === 1 ? 'day' : 'days'}
+      </p>
+      <h4 className="mt-3 text-sm font-medium">For one batch</h4>
+      <IngredientList lines={lines} loading={status !== 'ready'} label="For one batch" />
+      <label className="mt-3 flex min-h-12 items-center justify-between gap-3 rounded-xl border border-line px-3">
+        <span>
+          <span className="block font-medium">Keep it going</span>
+          <span className="block text-xs text-ink-muted">Ask to start the next when this one is nearly finished</span>
+        </span>
+        <input type="checkbox" role="switch" checked={plan.keep_going} onChange={(e) => setKeepGoing(e.target.checked)} className="h-6 w-6 shrink-0 accent-leaf" />
+      </label>
+    </section>
   )
 }
 

@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { Sheet } from '../components/Sheet.tsx'
 import { useToast } from '../components/toastContext.ts'
+import { useDishes } from '../dishes/dishContext.ts'
 import type { Dish, Meal } from '../dishes/types.ts'
 import { useReadyHousehold } from '../household/householdContext.ts'
 import { addDays, type LocalDate } from '../lib/dates.ts'
@@ -9,8 +10,10 @@ import { undoAll } from '../stock/actions.ts'
 import { primaryClass } from '../stock/labels.ts'
 import { useStock } from '../stock/stockContext.ts'
 import type { Combo } from './combos.ts'
-import { cookEvents, cookLines, type CookLine } from './cook.ts'
+import { cookEvents, cookLines, preparedEvents, preparedLines, type CookLine, type PreparedLine } from './cook.ts'
 import { useMeals } from './mealContext.ts'
+import { useBatches } from '../prepared/batchContext.ts'
+import { amount, prepPlan } from '../prepared/plan.ts'
 import { StockLines } from './StockLines.tsx'
 import { usePlanContext } from './usePlanContext.ts'
 
@@ -46,11 +49,16 @@ export function CookSheet({ date, meal, combo, onClose }: Props) {
 function Deductions({ date, meal, combo, onCooked }: { date: LocalDate; meal: Meal; combo: Combo; onCooked: (mealId: string) => void }) {
   const { items, eventsByItem, record } = useStock()
   const { cookMeal, restoreMeal, setLeftoverEaten } = useMeals()
+  const { dishesById } = useDishes()
+  const { addEvent } = useBatches()
   const pref = useReadyHousehold().me.script_pref
   const toast = useToast()
   const ctx = usePlanContext(date)
   const itemsById = useMemo(() => new Map(items.map((i) => [i.id, i])), [items])
   const [lines, setLines] = useState<CookLine[]>(() => cookLines(combo))
+  const ready = ctx.prepared ?? new Map()
+  const [prepared, setPrepared] = useState<PreparedLine[]>(() => preparedLines(combo, ready))
+  const unitOf = (id: string) => ready.get(id)?.unit ?? prepPlan(dishesById.get(id) ?? { prep_plan: null })?.unit ?? 'meals'
   const name = (d: Dish) => namePair(d, pref)[0]
   const leftoverDish = combo.leftover ? combo.sides.find((s) => s.id === combo.leftover!.dish_id) : undefined
 
@@ -58,12 +66,15 @@ function Deductions({ date, meal, combo, onCooked }: { date: LocalDate; meal: Me
     const events = cookEvents(lines, ctx.stockTotals)
     const added = record(events)
     const undoStock = undoAll(itemsById, eventsByItem, added)
+    // Meals of batter, glasses of koozh: from the oldest ready batch first.
+    const used = preparedEvents(prepared, ready).map((t) => addEvent(t.batch_id, { kind: 'used', quantity: t.quantity }))
     const before = cookMeal(date, meal, combo)
     const leftover = combo.leftover
     if (leftover) setLeftoverEaten(leftover.id, true)
-    toast(`${name(combo.main)} cooked${added.length ? ' · stock updated' : ''}`, {
+    toast(`${name(combo.main)} cooked${added.length || used.length ? ' · stock updated' : ''}`, {
       undo: () => {
         record(undoStock)
+        for (const e of used) addEvent(e.batch_id, { kind: 'undo', undoes: e.id })
         restoreMeal(date, meal, before)
         if (leftover) setLeftoverEaten(leftover.id, false)
       },
@@ -77,6 +88,38 @@ function Deductions({ date, meal, combo, onCooked }: { date: LocalDate; meal: Me
         {[combo.main, ...(combo.base ? [combo.base] : []), ...combo.sides].map(name).join(' · ')}
       </p>
       {leftoverDish && <p className="mt-1 text-sm text-teal">Uses the leftover {name(leftoverDish)}: nothing to take for it.</p>}
+
+      {prepared.length > 0 && (
+        <>
+          <h3 className="mt-4 text-sm font-semibold text-ink-muted">Made ahead</h3>
+          <ul className="mt-2 divide-y divide-line rounded-xl border border-line" aria-label="Made ahead">
+            {prepared.map((p) => {
+              const dish = dishesById.get(p.dish_id)
+              const label = dish ? name(dish) : 'Something made ahead'
+              const unit = unitOf(p.dish_id)
+              return (
+                <li key={p.dish_id} className="flex items-center gap-3 px-3 py-2">
+                  <input
+                    type="checkbox"
+                    aria-label={`Use ${label}`}
+                    checked={p.include}
+                    disabled={p.available <= 0}
+                    onChange={(e) => setPrepared((ps) => ps.map((x) => (x.dish_id === p.dish_id ? { ...x, include: e.target.checked } : x)))}
+                    className="h-5 w-5 shrink-0 accent-leaf"
+                  />
+                  <span className={`min-w-0 flex-1 ${p.include ? '' : 'text-ink-muted'}`}>
+                    <span className="block truncate">{label}</span>
+                    <span className={`block text-xs ${p.available > 0 ? 'text-ink-muted' : 'text-turmeric-strong'}`}>
+                      {p.available > 0 ? `${amount(p.available, unit)} ready` : p.optional ? 'None ready · optional' : 'None ready: start a batch from Plan'}
+                    </span>
+                  </span>
+                  <span className="shrink-0 font-medium">{amount(p.quantity, unit)}</span>
+                </li>
+              )
+            })}
+          </ul>
+        </>
+      )}
 
       <h3 className="mt-4 text-sm font-semibold text-ink-muted">Take from stock, for 5</h3>
       <StockLines lines={lines} onChange={setLines} itemsById={itemsById} stockTotals={ctx.stockTotals} pref={pref} label="Take from stock" />
