@@ -13,6 +13,8 @@ import { CalendarError, type CalendarApi } from '../calendar/api.ts'
 import type { CalendarDay } from '../calendar/types.ts'
 import { BatchError, type BatchApi } from '../prepared/api.ts'
 import type { Batch, BatchEvent } from '../prepared/types.ts'
+import { ShoppingError, type ShoppingApi } from '../shop/api.ts'
+import type { ShoppingItem } from '../shop/types.ts'
 import type { Leftover, MealRecord } from '../plan/types.ts'
 import { StockError, type RemoteChange, type StockApi } from '../stock/api.ts'
 import type { Item, StockEvent } from '../stock/types.ts'
@@ -165,6 +167,9 @@ export function fakeHouseholdApi({ withHousehold = false, offline = false }: Opt
   let batchEvents: BatchEvent[] = []
   const batchListeners = new Set<(change: TableChange) => void>()
   const tellBatch = (change: TableChange) => batchListeners.forEach((l) => l(structuredClone(change)))
+  let shopping: ShoppingItem[] = []
+  const shoppingListeners = new Set<(change: TableChange) => void>()
+  const tellShopping = (change: TableChange) => shoppingListeners.forEach((l) => l(structuredClone(change)))
   const seed = (hid: string) => {
     items = starterItems(hid)
     dishes = starterDishes(hid)
@@ -335,6 +340,48 @@ export function fakeHouseholdApi({ withHousehold = false, offline = false }: Opt
     return { status: 'ok' }
   }
 
+  /** Shopping lines, with the same rules as the database: one open "want" per item. */
+  const shoppingApi = {
+    load: vi.fn(async (householdId: string) => {
+      if (net.offline) throw new ShoppingError('offline')
+      return structuredClone(shopping.filter((s) => s.household_id === householdId))
+    }),
+    subscribe: vi.fn((_householdId: string, onChange: (change: TableChange) => void) => {
+      shoppingListeners.add(onChange)
+      return () => void shoppingListeners.delete(onChange)
+    }),
+  } satisfies ShoppingApi
+
+  const openWant = (s: Pick<ShoppingItem, 'kind' | 'done_at'>) => s.kind === 'want' && !s.done_at
+  const executeShopping = (op: OutboxOp): OpResult => {
+    if (op.kind === 'insert') {
+      const row = op.row as unknown as ShoppingItem
+      if (row.household_id !== household?.id || row.created_by !== me) return { status: 'reject', message: 'row-level security' }
+      if (!items.some((i) => i.id === row.item_id && i.household_id === row.household_id)) return { status: 'reject', message: 'foreign key' }
+      if (shopping.some((s) => s.id === row.id)) return { status: 'ok' }
+      if (openWant(row) && shopping.some((s) => s.household_id === row.household_id && s.item_id === row.item_id && openWant(s))) {
+        return { status: 'reject', message: 'duplicate key' }
+      }
+      const now = new Date().toISOString()
+      const line = { ...row, created_at: now, updated_at: now }
+      shopping = [...shopping, line]
+      tellShopping({ table: 'shopping_items', row: line })
+      return { status: 'ok' }
+    }
+    const current = shopping.find((s) => s.id === op.match.id && s.household_id === household?.id)
+    if (!current) return { status: 'ok' }
+    if (op.kind === 'delete') {
+      shopping = shopping.filter((s) => s.id !== current.id)
+      tellShopping({ table: 'shopping_items', deletedId: current.id })
+      return { status: 'ok' }
+    }
+    const next = { ...current, ...(op.patch as Partial<ShoppingItem>), updated_by: me, updated_at: new Date().toISOString() }
+    if (next.done_at && !next.done_by) return { status: 'reject', message: 'check constraint' }
+    shopping = shopping.map((s) => (s.id === next.id ? next : s))
+    tellShopping({ table: 'shopping_items', row: next })
+    return { status: 'ok' }
+  }
+
   const executeCalendar = (op: OutboxOp): OpResult => {
     const valid = (d: Partial<CalendarDay>) => !d.end_date || (d.type === 'puratasi' && d.end_date >= (d.date ?? ''))
     if (op.kind === 'insert') {
@@ -452,6 +499,7 @@ export function fakeHouseholdApi({ withHousehold = false, offline = false }: Opt
     if (op.table === 'meals' || op.table === 'leftovers') return executeMeal(op)
     if (op.table === 'calendar_days') return executeCalendar(op)
     if (op.table === 'batches' || op.table === 'batch_events') return executeBatch(op)
+    if (op.table === 'shopping_items') return executeShopping(op)
     if (op.kind !== 'update') return { status: 'reject', message: 'not supported in the fake' }
     const stamp = { updated_by: me, updated_at: new Date().toISOString() }
     if (op.table === 'items') {
@@ -570,6 +618,7 @@ export function fakeHouseholdApi({ withHousehold = false, offline = false }: Opt
     mealApi,
     calendarApi,
     batchApi,
+    shoppingApi,
     execute,
     /** Read the "server" side, to check what was actually saved. */
     server: {
@@ -588,6 +637,32 @@ export function fakeHouseholdApi({ withHousehold = false, offline = false }: Opt
       meals: () => meals,
       calendar: () => calendar,
       batches: () => batches,
+      shopping: () => shopping,
+      /** The other phone (user-2) adds to the list, or ticks a line off; this phone hears about it live. */
+      otherPhoneShops(row: Pick<ShoppingItem, 'item_id'> & Partial<ShoppingItem>) {
+        const now = new Date().toISOString()
+        const existing = row.id ? shopping.find((s) => s.id === row.id) : undefined
+        const line: ShoppingItem = existing
+          ? { ...existing, ...row, updated_by: 'user-2', updated_at: now }
+          : {
+              id: `other-shop-${shopping.length + 1}`,
+              household_id: household!.id,
+              kind: 'want',
+              quantity: null,
+              skip_until: null,
+              section: null,
+              done_at: null,
+              done_by: null,
+              created_by: 'user-2',
+              created_at: now,
+              updated_by: 'user-2',
+              updated_at: now,
+              ...row,
+            }
+        shopping = existing ? shopping.map((s) => (s.id === line.id ? line : s)) : [...shopping, line]
+        if (!net.offline) tellShopping({ table: 'shopping_items', row: line })
+        return line
+      },
       /**
        * Things made ahead, as the prepared catalogue gives them: ragi koozh (also a
        * drink that uses 5 glasses of itself) and idli/dosa batter, with dosa using it.

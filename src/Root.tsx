@@ -26,6 +26,8 @@ import { supabaseMealApi, type MealApi } from './plan/api.ts'
 import { MealProvider } from './plan/MealProvider.tsx'
 import { supabaseBatchApi, type BatchApi } from './prepared/api.ts'
 import { BatchProvider } from './prepared/BatchProvider.tsx'
+import { supabaseShoppingApi, type ShoppingApi } from './shop/api.ts'
+import { ShoppingProvider } from './shop/ShoppingProvider.tsx'
 import { supabaseStockApi, type StockApi } from './stock/api.ts'
 import { StockProvider } from './stock/StockProvider.tsx'
 import { useTheme } from './theme/themeContext.ts'
@@ -45,6 +47,7 @@ interface RootProps {
   mealApi?: MealApi
   calendarApi?: CalendarApi
   batchApi?: BatchApi
+  shoppingApi?: ShoppingApi
   backupApi?: BackupApi
   sync?: Sync
   drive?: DriveDeps | null
@@ -59,6 +62,7 @@ export function Root({
   mealApi,
   calendarApi,
   batchApi,
+  shoppingApi,
   backupApi,
   sync = defaultSync ?? undefined,
   drive = defaultDrive,
@@ -69,6 +73,7 @@ export function Root({
   const mealsApi = useMemo(() => mealApi ?? (supabase ? supabaseMealApi(supabase) : null), [mealApi])
   const calApi = useMemo(() => calendarApi ?? (supabase ? supabaseCalendarApi(supabase) : null), [calendarApi])
   const batchesApi = useMemo(() => batchApi ?? (supabase ? supabaseBatchApi(supabase) : null), [batchApi])
+  const shopApi = useMemo(() => shoppingApi ?? (supabase ? supabaseShoppingApi(supabase) : null), [shoppingApi])
   const backup = useMemo(() => backupApi ?? (supabase ? supabaseBackupApi(supabase) : null), [backupApi])
   // Nothing from one person's session stays on the device after they log out.
   const onSignedOut = useCallback(async () => {
@@ -76,12 +81,12 @@ export function Root({
     drive?.tokens.forget()
     await sync?.db.clearAll()
   }, [sync, drive])
-  if (!auth || !api || !stock || !dishesApi || !mealsApi || !calApi || !batchesApi || !backup || !sync) return <NotConfigured />
+  if (!auth || !api || !stock || !dishesApi || !mealsApi || !calApi || !batchesApi || !shopApi || !backup || !sync) return <NotConfigured />
   return (
     <AuthProvider auth={auth} onSignedOut={onSignedOut}>
       <BackupApiContext.Provider value={backup}>
         <DriveDepsContext.Provider value={drive}>
-          <AuthGate api={api} apis={{ stock, dishes: dishesApi, meals: mealsApi, calendar: calApi, batches: batchesApi }} sync={sync} />
+          <AuthGate api={api} apis={{ stock, dishes: dishesApi, meals: mealsApi, calendar: calApi, batches: batchesApi, shopping: shopApi }} sync={sync} />
         </DriveDepsContext.Provider>
       </BackupApiContext.Provider>
     </AuthProvider>
@@ -95,6 +100,7 @@ interface DataApis {
   meals: MealApi
   calendar: CalendarApi
   batches: BatchApi
+  shopping: ShoppingApi
 }
 
 function AuthGate({ api, apis, sync }: { api: HouseholdApi; apis: DataApis; sync: Sync }) {
@@ -131,7 +137,9 @@ function HouseholdGate({ apis }: { apis: DataApis }) {
         <MealProvider api={apis.meals} householdId={snapshot.household.id} userId={snapshot.me.user_id}>
           <CalendarProvider api={apis.calendar} householdId={snapshot.household.id} userId={snapshot.me.user_id}>
             <BatchProvider api={apis.batches} householdId={snapshot.household.id} userId={snapshot.me.user_id}>
-              <App />
+              <ShoppingProvider api={apis.shopping} householdId={snapshot.household.id} userId={snapshot.me.user_id}>
+                <App />
+              </ShoppingProvider>
             </BatchProvider>
           </CalendarProvider>
         </MealProvider>

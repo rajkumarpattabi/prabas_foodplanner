@@ -3,6 +3,7 @@ import type { CalendarDay } from '../calendar/types.ts'
 import type { Dish } from '../dishes/types.ts'
 import type { Leftover, MealRecord } from '../plan/types.ts'
 import type { Batch, BatchEvent } from '../prepared/types.ts'
+import type { ShoppingItem } from '../shop/types.ts'
 import type { Item, StockEvent } from '../stock/types.ts'
 
 /**
@@ -64,6 +65,7 @@ export class PrabasDb extends Dexie {
   calendar_days!: EntityTable<CalendarDay, 'id'>
   batches!: EntityTable<Batch, 'id'>
   batch_events!: EntityTable<BatchEvent, 'id'>
+  shopping_items!: EntityTable<ShoppingItem, 'id'>
 
   constructor(name = 'prabas') {
     super(name)
@@ -90,6 +92,9 @@ export class PrabasDb extends Dexie {
       batches: 'id, household_id',
       batch_events: 'id, household_id, batch_id',
     })
+    this.version(7).stores({
+      shopping_items: 'id, household_id, item_id',
+    })
   }
 
   async readCache<T>(key: string): Promise<T | null> {
@@ -102,7 +107,7 @@ export class PrabasDb extends Dexie {
 
   /** On log out: nothing from one person's session stays on the device for the next. */
   async clearAll(): Promise<void> {
-    const tables = [this.outbox, this.cache, this.items, this.stock_events, this.dishes, this.meals, this.leftovers, this.calendar_days, this.batches, this.batch_events]
+    const tables = [this.outbox, this.cache, this.items, this.stock_events, this.dishes, this.meals, this.leftovers, this.calendar_days, this.batches, this.batch_events, this.shopping_items]
     await this.transaction('rw', tables, async () => {
       await Promise.all(tables.map((t) => t.clear()))
     })
