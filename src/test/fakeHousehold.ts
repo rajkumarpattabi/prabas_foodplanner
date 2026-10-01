@@ -8,6 +8,8 @@ import { normaliseJoinCode } from '../household/joinCode.ts'
 import { DishError, type DishApi } from '../dishes/api.ts'
 import type { Dish } from '../dishes/types.ts'
 import type { TableChange } from '../offline/useTableSync.ts'
+import { MealError, type MealApi } from '../plan/api.ts'
+import type { Leftover, MealRecord } from '../plan/types.ts'
 import { StockError, type RemoteChange, type StockApi } from '../stock/api.ts'
 import type { Item, StockEvent } from '../stock/types.ts'
 
@@ -147,6 +149,10 @@ export function fakeHouseholdApi({ withHousehold = false, offline = false }: Opt
   let dishes: Dish[] = []
   const dishListeners = new Set<(change: TableChange) => void>()
   const tellDish = (change: TableChange) => dishListeners.forEach((l) => l(structuredClone(change)))
+  let meals: MealRecord[] = []
+  let leftovers: Leftover[] = []
+  const mealListeners = new Set<(change: TableChange) => void>()
+  const tellMeal = (change: TableChange) => mealListeners.forEach((l) => l(structuredClone(change)))
   const seed = (hid: string) => {
     items = starterItems(hid)
     dishes = starterDishes(hid)
@@ -246,6 +252,52 @@ export function fakeHouseholdApi({ withHousehold = false, offline = false }: Opt
     }
   }
 
+  /** Meals and leftovers, with the same rules as the database. */
+  const mealApi = {
+    load: vi.fn(async (householdId: string) => {
+      if (net.offline) throw new MealError('offline')
+      const mine = <T extends { household_id: string }>(rows: T[]) => structuredClone(rows.filter((r) => r.household_id === householdId))
+      return { meals: mine(meals), leftovers: mine(leftovers) }
+    }),
+    subscribe: vi.fn((_householdId: string, onChange: (change: TableChange) => void) => {
+      mealListeners.add(onChange)
+      return () => void mealListeners.delete(onChange)
+    }),
+  } satisfies MealApi
+
+  const executeMeal = (op: OutboxOp): OpResult => {
+    const table = op.table as 'meals' | 'leftovers'
+    const rows = (): { id: string; household_id: string }[] => (table === 'meals' ? meals : leftovers)
+    const setRows = (next: { id: string }[]) => {
+      if (table === 'meals') meals = next as MealRecord[]
+      else leftovers = next as Leftover[]
+    }
+    const stamp = { updated_by: me, updated_at: new Date().toISOString() }
+    if (op.kind === 'insert') {
+      const row = op.row as Record<string, unknown> & { id: string }
+      if (row.household_id !== household?.id || row.created_by !== me) return { status: 'reject', message: 'row-level security' }
+      if (table === 'meals' && row.id !== `${row.household_id}:${row.date}:${row.meal}`) return { status: 'reject', message: 'check constraint' }
+      if (rows().some((r) => r.id === row.id)) return { status: 'ok' } // Already there: the first one stands.
+      const created_at = new Date().toISOString()
+      const next = { ...row, created_at, updated_at: created_at, updated_by: me }
+      setRows([...rows(), next])
+      tellMeal({ table, row: next })
+      return { status: 'ok' }
+    }
+    const current = rows().find((r) => r.id === op.match.id && r.household_id === household?.id)
+    if (!current) return { status: 'ok' }
+    if (op.kind === 'delete') {
+      setRows(rows().filter((r) => r.id !== current.id))
+      tellMeal({ table, deletedId: current.id })
+      return { status: 'ok' }
+    }
+    const next = { ...current, ...op.patch, ...stamp } as Record<string, unknown> & { id: string }
+    if (table === 'meals' && next.status === 'cooked' && !next.cooked_at) return { status: 'reject', message: 'check constraint' }
+    setRows(rows().map((r) => (r.id === current.id ? next : r)))
+    tellMeal({ table, row: next })
+    return { status: 'ok' }
+  }
+
   const executeDish = (op: OutboxOp): OpResult => {
     const stamp = { updated_by: me, updated_at: new Date().toISOString() }
     if (op.kind === 'insert') {
@@ -297,6 +349,7 @@ export function fakeHouseholdApi({ withHousehold = false, offline = false }: Opt
     if (net.offline) return { status: 'retry' }
     if (op.kind === 'insert' && (op.table === 'items' || op.table === 'stock_events')) return insertStock(op)
     if (op.table === 'dishes') return executeDish(op)
+    if (op.table === 'meals' || op.table === 'leftovers') return executeMeal(op)
     if (op.kind !== 'update') return { status: 'reject', message: 'not supported in the fake' }
     const stamp = { updated_by: me, updated_at: new Date().toISOString() }
     if (op.table === 'items') {
@@ -367,6 +420,7 @@ export function fakeHouseholdApi({ withHousehold = false, offline = false }: Opt
     backupApi,
     stockApi,
     dishApi,
+    mealApi,
     execute,
     /** Read the "server" side, to check what was actually saved. */
     server: {
@@ -382,6 +436,48 @@ export function fakeHouseholdApi({ withHousehold = false, offline = false }: Opt
         return row
       },
       dishes: () => dishes,
+      meals: () => meals,
+      leftovers: () => leftovers,
+      /** The other phone (user-2) plans or cooks a meal. */
+      otherPhonePutsMeal(row: Pick<MealRecord, 'date' | 'meal' | 'dish_ids'> & Partial<MealRecord>) {
+        const id = `${household!.id}:${row.date}:${row.meal}`
+        const now = new Date().toISOString()
+        const meal: MealRecord = {
+          id,
+          household_id: household!.id,
+          dish_names: [],
+          status: 'planned',
+          cooked_by: null,
+          cooked_at: null,
+          created_by: 'user-2',
+          created_at: now,
+          updated_by: 'user-2',
+          updated_at: now,
+          ...row,
+        }
+        meals = [...meals.filter((m) => m.id !== id), meal]
+        if (!net.offline) tellMeal({ table: 'meals', row: meal })
+        return meal
+      },
+      /** The other phone records leftovers. */
+      otherPhoneAddsLeftover(row: Pick<Leftover, 'dish_id' | 'name_ta' | 'name_en' | 'servings' | 'expires_on'> & Partial<Leftover>) {
+        const now = new Date().toISOString()
+        const leftover: Leftover = {
+          id: `lo-${leftovers.length + 1}`,
+          household_id: household!.id,
+          meal_id: null,
+          eaten_at: null,
+          eaten_by: null,
+          created_by: 'user-2',
+          created_at: now,
+          updated_by: 'user-2',
+          updated_at: now,
+          ...row,
+        }
+        leftovers = [...leftovers, leftover]
+        if (!net.offline) tellMeal({ table: 'leftovers', row: leftover })
+        return leftover
+      },
       /** The other phone edits a dish. */
       otherPhoneEditsDish(id: string, patch: Partial<Dish>) {
         const dish = { ...dishes.find((d) => d.id === id)!, ...patch, updated_by: 'user-2', updated_at: new Date().toISOString() }
