@@ -3,6 +3,7 @@ import { DriveAutoBackup } from './backup/drive/DriveAutoBackup.tsx'
 import { ReminderSync } from './reminders/ReminderSync.tsx'
 import { SyncStatus } from './components/SyncStatus.tsx'
 import { TabBar } from './components/TabBar.tsx'
+import { BalanceScreen } from './screens/BalanceScreen.tsx'
 import { CalendarScreen } from './screens/CalendarScreen.tsx'
 import { DishesScreen } from './screens/DishesScreen.tsx'
 import { PlanScreen } from './screens/PlanScreen.tsx'
@@ -25,6 +26,7 @@ export default function App() {
           <Route path="/dishes" element={<DishesScreen />} />
           <Route path="/settings" element={<SettingsScreen />} />
           <Route path="/calendar" element={<CalendarScreen />} />
+          <Route path="/balance" element={<BalanceScreen />} />
           <Route path="*" element={<Navigate to="/plan" replace />} />
         </Routes>
       </main>

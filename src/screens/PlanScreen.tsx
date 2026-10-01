@@ -26,6 +26,7 @@ import { usePlanContext } from '../plan/usePlanContext.ts'
 import { swapIdea, swapText } from '../nutrition/swaps.ts'
 import { useBatches } from '../prepared/batchContext.ts'
 import { InProgress } from '../prepared/InProgress.tsx'
+import { BalanceCard } from './BalanceScreen.tsx'
 import { useNow } from '../prepared/useNow.ts'
 import { shortDate } from '../stock/history.ts'
 import { useStock } from '../stock/stockContext.ts'
@@ -73,6 +74,7 @@ export function PlanScreen() {
         </div>
         {/* Keyed so swapped sides and paging start fresh for each day and meal. */}
         <MealPlan key={`${date}:${meal}`} date={date} meal={meal} today={today} />
+        <BalanceCard />
       </InProgress>
     </Screen>
   )
