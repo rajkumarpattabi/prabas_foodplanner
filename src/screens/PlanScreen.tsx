@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useState, type ReactNode } from 'react'
 import { Link } from 'react-router'
 import { SettingsIcon } from '../components/icons.tsx'
 import { Screen } from '../components/Screen.tsx'
@@ -13,6 +13,7 @@ import { namePair } from '../lib/names.ts'
 import { attribution } from '../lib/time.ts'
 import { AlternativesSheet } from '../plan/AlternativesSheet.tsx'
 import { comboFromMeal, combosFor, swapSide, usableLeftovers, type Combo } from '../plan/combos.ts'
+import { CookSheet } from '../plan/CookSheet.tsx'
 import { useMeals } from '../plan/mealContext.ts'
 import { nextMeal } from '../plan/mealTime.ts'
 import { scoreCombo, suggest, TOP_PICKS, type PlanContext, type Scored } from '../plan/score.ts'
@@ -92,6 +93,7 @@ function MealPlan({ date, meal, today }: { date: LocalDate; meal: Meal; today: L
   const [swapped, setSwapped] = useState<ReadonlyMap<string, Combo>>(new Map())
   const [page, setPage] = useState(0)
   const [swapping, setSwapping] = useState<{ combo: Combo; side: Dish; planned: boolean } | null>(null)
+  const [cooking, setCooking] = useState<Combo | null>(null)
 
   const { picks, rediscovery } = useMemo(() => {
     const combos = combosFor(meal, dishes, usable).map((c) => swapped.get(c.main.id) ?? c)
@@ -110,6 +112,7 @@ function MealPlan({ date, meal, today }: { date: LocalDate; meal: Meal; today: L
     toast(`${dishName(combo.main)} planned for ${when}`, { undo: () => restoreMeal(date, meal, before) })
   }
 
+  const cookSheet = cooking && <CookSheet date={date} meal={meal} combo={cooking} onClose={() => setCooking(null)} />
   const sheet = swapping && (
     <AlternativesSheet
       combo={swapping.combo}
@@ -124,30 +127,40 @@ function MealPlan({ date, meal, today }: { date: LocalDate; meal: Meal; today: L
     />
   )
 
+  // The sheets sit in the same place whatever shows, so cooking (which turns the
+  // suggestions into the cooked meal) doesn't close the sheet before its leftovers step.
+  const withSheets = (content: ReactNode) => (
+    <>
+      {content}
+      {sheet}
+      {cookSheet}
+    </>
+  )
+
   if (existing && !changing) {
-    return (
+    return withSheets(
       <div className="mt-4">
         <PlannedMeal
           record={existing}
           combo={comboFromMeal(existing.dish_ids, dishesById, usable)}
           ctx={ctx}
           onSide={(combo, side) => setSwapping({ combo, side, planned: true })}
+          onCook={setCooking}
           onChange={() => setChanging(true)}
           onRemove={() => {
             removeMeal(date, meal)
             toast(`Plan for ${when} removed`, { undo: () => restoreMeal(date, meal, existing) })
           }}
         />
-        {sheet}
-      </div>
+      </div>,
     )
   }
 
   if (!picks.length && !rediscovery) {
-    return (
+    return withSheets(
       <p className="mt-8 rounded-2xl border border-dashed border-line p-6 text-center text-ink-muted">
         No dishes for {MEAL_LABELS[meal].toLowerCase()} yet. Add some on the Dishes tab.
-      </p>
+      </p>,
     )
   }
 
@@ -164,10 +177,13 @@ function MealPlan({ date, meal, today }: { date: LocalDate; meal: Meal; today: L
       <button type="button" onClick={() => plan(s.combo)} className={primary}>
         Plan this
       </button>
+      <button type="button" onClick={() => setCooking(s.combo)} className={secondary}>
+        Cook this
+      </button>
     </SuggestionCard>
   )
 
-  return (
+  return withSheets(
     <div className="mt-4 space-y-3">
       {changing && (
         <div className="flex items-center justify-between gap-3 rounded-xl bg-leaf-fill px-3 py-2">
@@ -188,8 +204,7 @@ function MealPlan({ date, meal, today }: { date: LocalDate; meal: Meal; today: L
           {page + 1 < pages ? 'More ideas' : 'Back to the best ideas'}
         </button>
       )}
-      {sheet}
-    </div>
+    </div>,
   )
 }
 
@@ -199,6 +214,7 @@ function PlannedMeal({
   combo,
   ctx,
   onSide,
+  onCook,
   onChange,
   onRemove,
 }: {
@@ -206,6 +222,7 @@ function PlannedMeal({
   combo: Combo | null
   ctx: PlanContext
   onSide: (combo: Combo, side: Dish) => void
+  onCook: (combo: Combo) => void
   onChange: () => void
   onRemove: () => void
 }) {
@@ -223,6 +240,11 @@ function PlannedMeal({
   )
   const actions = !cooked && (
     <>
+      {combo && (
+        <button type="button" onClick={() => onCook(combo)} className={primary}>
+          Cook this
+        </button>
+      )}
       <button type="button" onClick={onChange} className={secondary}>
         Change
       </button>

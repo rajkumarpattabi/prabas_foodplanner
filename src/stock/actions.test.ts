@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest'
-import { expiryEvents, minusEvents, openEvents, plusEvents, spoiledEvents, undoEvents, usedUpEvents } from './actions.ts'
+import { expiryEvents, minusEvents, openEvents, plusEvents, spoiledEvents, undoAll, undoEvents, usedUpEvents } from './actions.ts'
 import { computeStock } from './computeStock.ts'
 import type { NewStockEvent } from './stockContext.ts'
 import type { StockEvent } from './types.ts'
@@ -119,6 +119,23 @@ describe('exact undo', () => {
     expect(open).toHaveLength(1)
     expectExactUndo(coconut, before, open)
     expect(openEvents(coconut, computeStock(coconut, []))).toEqual([])
+  })
+
+  test('cooking across several items undoes each exactly', () => {
+    const before = [...bought(tomato, 500, '2026-09-24'), ...bought(coconut, 2)]
+    const added = save([
+      { item_id: 'tomato', kind: 'delta', quantity: -300, reason: 'cooked' },
+      { item_id: 'coconut', kind: 'delta', quantity: -1, reason: 'cooked' },
+    ])
+    const eventsByItem = new Map([
+      ['tomato', before.filter((e) => e.item_id === 'tomato')],
+      ['coconut', before.filter((e) => e.item_id === 'coconut')],
+    ])
+    const undo = save(undoAll(new Map<string, typeof tomato | typeof coconut>([['tomato', tomato], ['coconut', coconut]]), eventsByItem, added))
+    for (const item of [tomato, coconut]) {
+      const mine = (es: StockEvent[]) => es.filter((e) => e.item_id === item.id)
+      expect(computeStock(item, [...mine(before), ...mine(added), ...mine(undo)]).total).toBe(computeStock(item, mine(before)).total)
+    }
   })
 
   test("the other phone's changes in between are left alone", () => {

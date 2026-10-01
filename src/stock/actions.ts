@@ -52,6 +52,20 @@ export function expiryEvents(item: ActionItem, batchId: string, expiresOn: strin
   return [{ item_id: item.id, kind: 'expiry', quantity: 0, batch_id: batchId, expires_on: expiresOn }]
 }
 
+/** The exact undo for events across several items (cooking a meal), item by item. */
+export function undoAll(
+  itemsById: ReadonlyMap<string, ShelfItem>,
+  eventsByItem: ReadonlyMap<string, readonly StockEvent[]>,
+  added: readonly StockEvent[],
+): NewStockEvent[] {
+  const byItem = new Map<string, StockEvent[]>()
+  for (const e of added) byItem.set(e.item_id, [...(byItem.get(e.item_id) ?? []), e])
+  return [...byItem].flatMap(([id, events]) => {
+    const item = itemsById.get(id)
+    return item ? undoEvents(item, eventsByItem.get(id) ?? [], events) : []
+  })
+}
+
 /** Why the stock put back by an undo had been taken: decides whether it had counted as use. */
 function takenFor(e: StockEvent): StockReason | null {
   if (e.kind === 'open') return null // Opening a coconut isn't using it.
