@@ -2,6 +2,7 @@
 // Keep in step with supabase/migrations/. Tables are added here batch by batch.
 
 import type { Dish as DishInterface } from '../dishes/types.ts'
+import type { Leftover as LeftoverInterface, MealRecord as MealInterface } from '../plan/types.ts'
 import type { Item as ItemInterface, StockEvent as StockEventInterface } from '../stock/types.ts'
 
 // supabase-js needs plain object types for rows (interfaces don't fit its table
@@ -10,6 +11,8 @@ type Plain<T> = { [K in keyof T]: T[K] }
 type Item = Plain<ItemInterface>
 type StockEvent = Plain<StockEventInterface>
 type Dish = Plain<DishInterface>
+type MealRow = Plain<MealInterface>
+type Leftover = Plain<LeftoverInterface>
 
 type Timestamps = {
   created_by: string | null
@@ -95,6 +98,18 @@ export type Database = {
         Row: Dish
         Insert: Partial<Dish> & Pick<Dish, 'household_id' | 'name_ta' | 'name_en' | 'type'>
         Update: Partial<Omit<Dish, 'id' | 'household_id' | 'catalog_key' | 'created_by' | 'created_at' | 'updated_by' | 'updated_at'>>
+        Relationships: []
+      }
+      meals: {
+        Row: MealRow
+        Insert: Partial<MealRow> & Pick<MealRow, 'id' | 'household_id' | 'date' | 'meal' | 'dish_ids'>
+        Update: Partial<Pick<MealRow, 'dish_ids' | 'dish_names' | 'status' | 'cooked_by' | 'cooked_at'>>
+        Relationships: []
+      }
+      leftovers: {
+        Row: Leftover
+        Insert: Partial<Leftover> & Pick<Leftover, 'id' | 'household_id' | 'name_ta' | 'name_en' | 'servings' | 'expires_on'>
+        Update: Partial<Pick<Leftover, 'servings' | 'expires_on' | 'eaten_at' | 'eaten_by'>>
         Relationships: []
       }
     }
