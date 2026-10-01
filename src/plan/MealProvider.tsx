@@ -129,18 +129,25 @@ export function MealProvider({ api, householdId, userId, children }: Props) {
     [householdId, userId, save],
   )
 
-  const setLeftoverEaten = useCallback(
-    (id: string, eaten: boolean) => {
+  const updateLeftover = useCallback(
+    (id: string, patch: Partial<Pick<Leftover, 'eaten_at' | 'eaten_by' | 'expires_on'>>) => {
       void (async () => {
         const current = await db.leftovers.get(id)
         if (!current) return
-        const patch = eaten ? { eaten_at: new Date().toISOString(), eaten_by: userId } : { eaten_at: null, eaten_by: null }
         const next = { ...current, ...patch, updated_by: userId, updated_at: new Date().toISOString() }
         await save('leftovers', [next], [{ kind: 'update', table: 'leftovers', match: { id }, patch, userId }])
       })()
     },
     [db, userId, save],
   )
+
+  const setLeftoverEaten = useCallback(
+    (id: string, eaten: boolean) =>
+      updateLeftover(id, eaten ? { eaten_at: new Date().toISOString(), eaten_by: userId } : { eaten_at: null, eaten_by: null }),
+    [updateLeftover, userId],
+  )
+
+  const setLeftoverExpiry = useCallback((id: string, expires_on: LocalDate) => updateLeftover(id, { expires_on }), [updateLeftover])
 
   const ready = loaded === true && meals !== undefined && leftovers !== undefined
   const status: MealsStatus = ready ? 'ready' : loaded === false && error ? 'error' : 'loading'
@@ -158,9 +165,10 @@ export function MealProvider({ api, householdId, userId, children }: Props) {
       restoreMeal,
       addLeftovers,
       setLeftoverEaten,
+      setLeftoverExpiry,
       reload,
     }),
-    [status, error, meals, leftovers, mealFor, planMeal, removeMeal, cookMeal, restoreMeal, addLeftovers, setLeftoverEaten, reload],
+    [status, error, meals, leftovers, mealFor, planMeal, removeMeal, cookMeal, restoreMeal, addLeftovers, setLeftoverEaten, setLeftoverExpiry, reload],
   )
   return <MealContext.Provider value={value}>{children}</MealContext.Provider>
 }

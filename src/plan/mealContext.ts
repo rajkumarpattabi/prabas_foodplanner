@@ -29,6 +29,8 @@ export interface MealState {
   restoreMeal: (date: LocalDate, meal: Meal, before: MealRecord | null) => void
   addLeftovers: (leftovers: NewLeftover[]) => Leftover[]
   setLeftoverEaten: (id: string, eaten: boolean) => void
+  /** Good until the end of this day. */
+  setLeftoverExpiry: (id: string, expiresOn: LocalDate) => void
   reload: () => Promise<void>
 }
 

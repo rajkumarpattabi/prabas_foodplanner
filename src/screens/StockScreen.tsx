@@ -9,13 +9,20 @@ import { searchItems } from '../stock/search.ts'
 import { StockItemRow } from '../stock/StockItemRow.tsx'
 import { useStock } from '../stock/stockContext.ts'
 import { useStockAction } from '../stock/useStockAction.ts'
+import { localDate } from '../lib/dates.ts'
+import { leftoverRows } from '../plan/leftovers.ts'
+import { useMeals } from '../plan/mealContext.ts'
+import { ReadyToEat } from '../plan/ReadyToEat.tsx'
 import { sections, stockRows, type StockRow } from '../stock/view.ts'
 
 const MAX_RESULTS = 20
 
 export function StockScreen() {
   const { status, items, eventsByItem, reload } = useStock()
+  const { leftovers } = useMeals()
   const { me } = useReadyHousehold()
+  // Read once when the screen opens.
+  const [today] = useState(() => localDate(new Date()))
   const act = useStockAction()
   const pref = me.script_pref
   const [query, setQuery] = useState('')
@@ -68,7 +75,8 @@ export function StockScreen() {
   }
 
   const searching = query.trim() !== ''
-  const nothingShown = !grouped.use_soon.length && !grouped.running_low.length && !grouped.fine.length
+  const hasLeftovers = leftoverRows(leftovers, today).length > 0
+  const nothingShown = !grouped.use_soon.length && !grouped.running_low.length && !grouped.fine.length && !hasLeftovers
 
   return (
     <Screen title="Stock">
@@ -100,6 +108,7 @@ export function StockScreen() {
         </p>
       ) : (
         <>
+          <ReadyToEat today={today} />
           {grouped.use_soon.length > 0 && <List title="Use soon">{grouped.use_soon.map(renderRow)}</List>}
           {grouped.running_low.length > 0 && <List title="Running low">{grouped.running_low.map(renderRow)}</List>}
           {grouped.fine.length > 0 && (

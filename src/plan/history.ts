@@ -24,6 +24,14 @@ export function dishHistory(meals: readonly MealRecord[]): Map<string, DishHisto
   return out
 }
 
+/** The cooked meals a dish was part of, newest first. */
+export function cookedWith(meals: readonly MealRecord[], dishId: string): MealRecord[] {
+  const order = { breakfast: 0, lunch: 1, dinner: 2 } as const
+  return meals
+    .filter((m) => m.status === 'cooked' && m.dish_ids.includes(dishId))
+    .sort((a, b) => b.date.localeCompare(a.date) || order[b.meal] - order[a.meal])
+}
+
 /** Whole days since it was last cooked, or null if never. */
 export function daysSince(lastCooked: LocalDate | null, today: LocalDate): number | null {
   return lastCooked === null ? null : daysBetween(lastCooked, today)

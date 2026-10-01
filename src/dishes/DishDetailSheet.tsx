@@ -3,6 +3,9 @@ import { Sheet } from '../components/Sheet.tsx'
 import { useToast } from '../components/toastContext.ts'
 import { useReadyHousehold } from '../household/householdContext.ts'
 import { namePair } from '../lib/names.ts'
+import { cookedWith } from '../plan/history.ts'
+import { useMeals } from '../plan/mealContext.ts'
+import { shortDate } from '../stock/history.ts'
 import { useStock } from '../stock/stockContext.ts'
 import { formatQuantity } from '../stock/units.ts'
 import { DishBadges, DishIcon } from './DishBits.tsx'
@@ -177,10 +180,7 @@ function DishDetail({ dish, onOpen }: { dish: Dish; onOpen: (id: string) => void
         </section>
       )}
 
-      <section className="mt-5">
-        <h3 className="text-sm font-semibold text-ink-muted">Cooking history</h3>
-        <p className="mt-1 text-sm text-ink-muted">Not cooked yet</p>
-      </section>
+      <CookingHistory dishId={dish.id} />
 
       <section className="mt-5 divide-y divide-line rounded-xl border border-line">
         {FLAGS.map((f) => (
@@ -197,5 +197,37 @@ function DishDetail({ dish, onOpen }: { dish: Dish; onOpen: (id: string) => void
         ))}
       </section>
     </div>
+  )
+}
+
+const HISTORY_SHOWN = 5
+
+/** When this dish was cooked, and by whom, newest first. */
+function CookingHistory({ dishId }: { dishId: string }) {
+  const { meals } = useMeals()
+  const { me, members } = useReadyHousehold()
+  const cooked = cookedWith(meals, dishId)
+  const names = new Map(members.map((m) => [m.userId, m.profile?.display_name ?? '']))
+  const who = (id: string | null) => (id === me.user_id ? 'you' : (id && names.get(id)) || 'someone')
+  return (
+    <section className="mt-5">
+      <h3 className="text-sm font-semibold text-ink-muted">Cooking history</h3>
+      {cooked.length ? (
+        <>
+          <p className="mt-1 text-sm">
+            Cooked {cooked.length} {cooked.length === 1 ? 'time' : 'times'}
+          </p>
+          <ul className="mt-2 space-y-1" aria-label="Cooking history">
+            {cooked.slice(0, HISTORY_SHOWN).map((m) => (
+              <li key={m.id} className="text-sm text-ink-muted">
+                {MEAL_LABELS[m.meal]} · {shortDate(m.date)} · cooked by {who(m.cooked_by)}
+              </li>
+            ))}
+          </ul>
+        </>
+      ) : (
+        <p className="mt-1 text-sm text-ink-muted">Not cooked yet</p>
+      )}
+    </section>
   )
 }
