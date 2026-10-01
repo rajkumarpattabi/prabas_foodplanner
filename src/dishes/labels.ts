@@ -15,6 +15,7 @@ export const TYPE_LABELS: Record<DishType, string> = {
   nonveg_fry: 'Non-veg fry',
   drink: 'Drink',
   snack: 'Snack and sweet',
+  prepared: 'Made ahead',
 }
 
 export const MEAL_LABELS: Record<Meal, string> = {

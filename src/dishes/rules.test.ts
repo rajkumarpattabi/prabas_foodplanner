@@ -80,6 +80,7 @@ describe('the Dishes list', () => {
     ingredients: [],
     side_ids: [],
     prep_plan: null,
+    uses_prepared: [],
     is_favourite: false,
     is_kids_favourite: false,
     dont_suggest: false,

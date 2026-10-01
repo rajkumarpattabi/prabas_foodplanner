@@ -13,6 +13,8 @@ export const DISH_TYPES = [
   'nonveg_fry',
   'drink',
   'snack',
+  /** Made ahead and used by other dishes, never a meal on its own: batter, dough, paste. */
+  'prepared',
 ] as const
 export type DishType = (typeof DISH_TYPES)[number]
 
@@ -45,8 +47,10 @@ export interface Dish {
   ingredients: Ingredient[]
   /** Recommended sides, best first. */
   side_ids: string[]
-  /** Stages for prepared items (Batch 6); unused until then. */
+  /** Stages, yield and batch ingredients, for a prepared item (see src/prepared/plan.ts). */
   prep_plan: unknown
+  /** The prepared items it's made from: "dosa uses 1 meal of batter" (see preparedUses). */
+  uses_prepared: unknown
   is_favourite: boolean
   is_kids_favourite: boolean
   /** Hidden from suggestions, but kept in the library. */

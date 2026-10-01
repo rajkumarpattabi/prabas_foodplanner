@@ -2,7 +2,9 @@ import { describe, expect, test } from 'vitest'
 import type { Dish } from '../dishes/types.ts'
 import type { Item } from '../stock/types.ts'
 import { alternativeSides, comboFor, comboFromMeal, combosFor, isMainFor, swapSide, usableLeftovers } from './combos.ts'
-import { cookEvents, cookLines, dishNames } from './cook.ts'
+import type { BatchState } from '../prepared/batchState.ts'
+import type { ReadyPrepared } from '../prepared/ready.ts'
+import { cookEvents, cookLines, dishNames, preparedEvents, preparedLines } from './cook.ts'
 import { cookedNote, dishHistory } from './history.ts'
 import { nextMeal } from './mealTime.ts'
 import { scoreCombo, SCORING, suggest, WEIGHTS, type Factor, type PlanContext } from './score.ts'
@@ -47,6 +49,7 @@ const dish = (id: string, extra: Partial<Dish>): Dish => ({
   ingredients: [],
   side_ids: [],
   prep_plan: null,
+  uses_prepared: [],
   is_favourite: false,
   is_kids_favourite: false,
   dont_suggest: false,
@@ -261,6 +264,8 @@ describe('scoring', () => {
       'recentlyCooked',
       'leftover',
       'calendar',
+      'prepared',
+      'agedBatter',
       'nutrition',
     ])
     expect(WEIGHTS.nutrition).toBe(0)
@@ -434,5 +439,67 @@ describe('cooking', () => {
 
   test('the meal keeps its dish names, main first', () => {
     expect(dishNames(comboFor(D.pongal, dishesById)).map((n) => n.dish_id)).toEqual(['pongal', 'brinjal_sambar', 'coconut_chutney'])
+  })
+})
+
+describe('prepared items', () => {
+  const batter = dish('batter', {
+    type: 'prepared',
+    name_en: 'Idli/dosa batter',
+    meals: ['breakfast', 'dinner'],
+    prep_plan: { stages: [], yield: 4, unit: 'meals', keeps_days: 3, ingredients: [{ item_id: 'rice', quantity: 2000 }], keep_going: true },
+  })
+  const dosa = dish('dosa', { uses_prepared: [{ dish_id: 'batter', quantity: 1 }] })
+  const uthappam = dish('uthappam', { uses_prepared: [{ dish_id: 'batter', quantity: 1, prefers_aged: true }], ingredients: [{ item_id: 'brinjal', quantity: 150 }] })
+  const byId = new Map([batter, dosa, uthappam].map((d) => [d.id, d]))
+  const state = (id: string, remaining: number) => ({ batch: { id }, remaining }) as BatchState
+  const ready = (ageDays = 0): Map<string, ReadyPrepared> =>
+    new Map([['batter', { dish_id: 'batter', remaining: 3, unit: 'meals', ageDays, batches: [state('b1', 1), state('b2', 2)] }]])
+  const score = (d: typeof dosa, prepared = ready()) => scoreCombo(comboFor(d, byId), ctx({ prepared, dishesById: byId }))
+
+  test('batter is never a meal on its own', () => {
+    expect(isMainFor(batter, 'breakfast')).toBe(false)
+    expect(combosFor('breakfast', [batter, dosa]).map((c) => c.main.id)).toEqual(['dosa'])
+  })
+
+  test('batter ready: a lift, and the why line says so', () => {
+    const s = score(dosa)
+    expect(s.factors.prepared).toBe(WEIGHTS.prepared)
+    expect(s.factors.agedBatter).toBe(0)
+    expect(s.factors.inStock).toBe(WEIGHTS.inStock)
+    expect(s.why).toBe("Everything's in stock · Idli/dosa batter is ready")
+    expect(s.needs).toEqual([])
+  })
+
+  test('no batter ready: needs batter, and nothing counts as in stock', () => {
+    const s = score(dosa, new Map())
+    expect(s.factors.prepared).toBe(0)
+    expect(s.factors.inStock).toBe(0)
+    expect(s.needs).toEqual(['Idli/dosa batter'])
+    // Not enough left counts as not ready.
+    const two = scoreCombo({ main: dosa, base: null, sides: [uthappam], leftover: null }, ctx({ prepared: new Map([['batter', { ...ready().get('batter')!, remaining: 1 }]]), dishesById: byId }))
+    expect(two.needs).toEqual(['Idli/dosa batter'])
+  })
+
+  test('older batter pushes uthappam, not dosa', () => {
+    expect(score(uthappam, ready(2)).factors.agedBatter).toBe(WEIGHTS.agedBatter)
+    expect(score(uthappam, ready(2)).why).toBe("Everything's in stock · Idli/dosa batter is 2 days old")
+    expect(score(uthappam, ready(1)).factors.agedBatter).toBe(0)
+    expect(score(dosa, ready(2)).factors.agedBatter).toBe(0)
+    expect(score(uthappam, ready(2)).score).toBeGreaterThan(score(dosa, ready(2)).score)
+  })
+
+  test('cooking dosa takes a meal of batter, oldest batch first, and no rice or urad again', () => {
+    const combo = comboFor(dosa, byId)
+    expect(cookLines(combo)).toEqual([])
+    const lines = preparedLines(combo, ready())
+    expect(lines).toEqual([{ dish_id: 'batter', quantity: 1, available: 3, optional: false, include: true }])
+    expect(preparedEvents(lines, ready())).toEqual([{ batch_id: 'b1', quantity: 1 }])
+    expect(preparedEvents([{ ...lines[0], quantity: 2 }], ready())).toEqual([
+      { batch_id: 'b1', quantity: 1 },
+      { batch_id: 'b2', quantity: 1 },
+    ])
+    // None ready: the line shows, unticked.
+    expect(preparedLines(combo, new Map())).toEqual([{ dish_id: 'batter', quantity: 1, available: 0, optional: false, include: false }])
   })
 })

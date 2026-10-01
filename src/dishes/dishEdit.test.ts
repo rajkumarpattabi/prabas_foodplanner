@@ -16,6 +16,7 @@ const pongal: Dish = {
   ingredients: [{ item_id: 'rice', quantity: 400 }],
   side_ids: ['sambar', 'chutney'],
   prep_plan: null,
+  uses_prepared: [],
   is_favourite: true,
   is_kids_favourite: false,
   dont_suggest: false,

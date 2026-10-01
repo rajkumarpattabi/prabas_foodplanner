@@ -42,6 +42,7 @@ const SIDE_KIND: Record<DishType, string> = {
   variety_rice: 'rice',
   drink: 'drink',
   snack: 'snack',
+  prepared: 'prepared',
 }
 
 /** Gravies that go with idli, dosa or chapati even if not listed as their side. */

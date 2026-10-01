@@ -19,6 +19,7 @@ export const ICON_GROUP: Record<DishType, IconGroup> = {
   nonveg_gravy: 'nonveg',
   nonveg_fry: 'nonveg',
   drink: 'drink',
+  prepared: 'tiffin',
 }
 
 /** Sides: what goes with a main dish. Everything else is a main. */

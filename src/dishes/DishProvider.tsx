@@ -47,6 +47,7 @@ export function DishProvider({ api, householdId, userId, children }: Props) {
         ingredients: [],
         side_ids: [],
         prep_plan: null,
+        uses_prepared: [],
         is_favourite: false,
         is_kids_favourite: false,
         dont_suggest: false,

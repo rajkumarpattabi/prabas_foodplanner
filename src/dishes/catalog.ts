@@ -178,6 +178,7 @@ const TYPE_TITLES: Record<DishType, string> = {
   nonveg_fry: 'Non-veg fry',
   drink: 'Drink',
   snack: 'Snack',
+  prepared: 'Made ahead',
 }
 
 /** The review table, grouped by type: names, meals, ingredients for five, and sides. */
