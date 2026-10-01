@@ -15,7 +15,7 @@ import { addDays, localDate, type LocalDate } from '../lib/dates.ts'
 import { namePair } from '../lib/names.ts'
 import { attribution } from '../lib/time.ts'
 import { AlternativesSheet } from '../plan/AlternativesSheet.tsx'
-import { comboFromMeal, comboIsNonVeg, combosFor, swapSide, usableLeftovers, type Combo } from '../plan/combos.ts'
+import { comboFor, comboFromMeal, comboIsNonVeg, combosFor, PLAIN_RICE_KEY, swapSide, usableLeftovers, type Combo } from '../plan/combos.ts'
 import { CookSheet } from '../plan/CookSheet.tsx'
 import { useMeals } from '../plan/mealContext.ts'
 import { nextMeal } from '../plan/mealTime.ts'
@@ -23,6 +23,7 @@ import { scoreCombo, suggest, TOP_PICKS, type PlanContext, type Scored } from '.
 import { SuggestionCard } from '../plan/SuggestionCard.tsx'
 import type { MealRecord } from '../plan/types.ts'
 import { usePlanContext } from '../plan/usePlanContext.ts'
+import { swapIdea, swapText } from '../nutrition/swaps.ts'
 import { useBatches } from '../prepared/batchContext.ts'
 import { InProgress } from '../prepared/InProgress.tsx'
 import { useNow } from '../prepared/useNow.ts'
@@ -99,7 +100,7 @@ function MealPlan({ date, meal, today }: { date: LocalDate; meal: Meal; today: L
   const toast = useToast()
   // The family's food rules for this day: veg only (and why), or a non-veg day.
   const day = useMemo(() => dayContext(date, days), [date, days])
-  const ctx = usePlanContext(date, day.nonVegDay)
+  const ctx = usePlanContext(date, day.nonVegDay, day.vegOnly)
   const usable = useMemo(() => usableLeftovers(leftovers, date), [leftovers, date])
   const existing = mealFor(date, meal)
   const [changing, setChanging] = useState(false)
@@ -110,7 +111,11 @@ function MealPlan({ date, meal, today }: { date: LocalDate; meal: Meal; today: L
   const [cooking, setCooking] = useState<Combo | null>(null)
 
   const { picks, rediscovery } = useMemo(() => {
-    const combos = combosFor(meal, dishes, usable, { vegOnly: day.vegOnly }).map((c) => swapped.get(c.main.id) ?? c)
+    // A combo switched to another main (a swap idea) stands in for it; never two cards for one main.
+    const seen = new Set<string>()
+    const combos = combosFor(meal, dishes, usable, { vegOnly: day.vegOnly })
+      .map((c) => swapped.get(c.main.id) ?? c)
+      .filter((c) => !seen.has(c.main.id) && !!seen.add(c.main.id))
     return suggest(combos, ctx, `${date}:${meal}`)
   }, [meal, dishes, usable, date, swapped, ctx, day.vegOnly])
 
@@ -118,6 +123,8 @@ function MealPlan({ date, meal, today }: { date: LocalDate; meal: Meal; today: L
 
   const when = whenLabel(date, meal, today)
   const dishName = (d: Dish) => namePair(d, pref)[0]
+  /** The original main a card stands for: a card switched to another main keeps its slot. */
+  const slotOf = (c: Combo) => [...swapped.entries()].find(([, v]) => v === c)?.[0] ?? c.main.id
 
   const plan = (combo: Combo) => {
     const before = existing ?? null
@@ -135,7 +142,7 @@ function MealPlan({ date, meal, today }: { date: LocalDate; meal: Meal; today: L
       onPick={(next) => {
         const combo = swapSide(swapping.combo, swapping.side, next)
         if (swapping.planned) plan(combo)
-        else setSwapped((m) => new Map(m).set(swapping.combo.main.id, combo))
+        else setSwapped((m) => new Map(m).set(slotOf(swapping.combo), combo))
         setSwapping(null)
       }}
       onClose={() => setSwapping(null)}
@@ -183,12 +190,40 @@ function MealPlan({ date, meal, today }: { date: LocalDate; meal: Meal; today: L
 
   const pages = Math.max(1, Math.ceil(picks.length / TOP_PICKS))
   const shown = picks.slice(page * TOP_PICKS, page * TOP_PICKS + TOP_PICKS)
+  const swapFor = (s: Scored) => {
+    if (!ctx.nutrition) return null
+    const idea = swapIdea({ combo: s.combo, meal, nutrition: ctx.nutrition, dishes, history: ctx.history, itemsById: ctx.itemsById, vegOnly: day.vegOnly })
+    if (!idea) return null
+    return {
+      text: swapText(idea, dishName),
+      onSwap: () => {
+        const slot = slotOf(s.combo)
+        const before = swapped.get(slot)
+        // A new main comes with its own ranked sides; an added side keeps the rest.
+        const next =
+          idea.kind === 'main'
+            ? comboFor(idea.dish, dishesById, usable, dishes.find((d) => d.catalog_key === PLAIN_RICE_KEY) ?? null, day.vegOnly)
+            : idea.combo
+        setSwapped((m) => new Map(m).set(slot, next))
+        toast(`Switched to ${dishName(idea.combo.main)}${idea.kind === 'side' ? ` with ${dishName(idea.dish)}` : ''}`, {
+          undo: () =>
+            setSwapped((m) => {
+              const next = new Map(m)
+              if (before) next.set(slot, before)
+              else next.delete(slot)
+              return next
+            }),
+        })
+      },
+    }
+  }
   const card = (s: Scored, isRediscovery = false) => (
     <SuggestionCard
       key={s.combo.main.id}
       scored={s}
       pref={pref}
       rediscovery={isRediscovery}
+      swap={swapFor(s)}
       onSide={(side) => setSwapping({ combo: s.combo, side, planned: false })}
     >
       <button type="button" onClick={() => plan(s.combo)} className={primary}>

@@ -14,12 +14,14 @@ interface Props {
   header?: ReactNode
   /** Tap a side to swap it. */
   onSide: (side: Dish) => void
+  /** A swap idea that fills a food-group gap: "More legumes: try pesarattu". */
+  swap?: { text: string; onSwap: () => void } | null
   /** The card's actions (plan, cook), in the lower part of the card. */
   children?: ReactNode
 }
 
 /** One combo: the main in both scripts, its sides, why it's suggested, and when it was last cooked. */
-export function SuggestionCard({ scored, pref, rediscovery, header, onSide, children }: Props) {
+export function SuggestionCard({ scored, pref, rediscovery, header, onSide, swap, children }: Props) {
   const { combo, why, needs, cooked } = scored
   const [first, second] = namePair(combo.main, pref)
   return (
@@ -72,6 +74,16 @@ export function SuggestionCard({ scored, pref, rediscovery, header, onSide, chil
       <div className="mt-3">
         <DishBadges dish={combo.main} />
       </div>
+      {swap && (
+        <button
+          type="button"
+          onClick={swap.onSwap}
+          className="mt-3 flex min-h-11 w-full items-center justify-between gap-2 rounded-xl bg-leaf-fill px-3 text-left text-sm font-medium text-leaf-strong"
+        >
+          <span>{swap.text}</span>
+          <span aria-hidden="true">›</span>
+        </button>
+      )}
       {children && <div className="mt-4 flex gap-2">{children}</div>}
     </article>
   )

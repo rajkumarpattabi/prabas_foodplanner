@@ -709,6 +709,31 @@ export function fakeHouseholdApi({ withHousehold = false, offline = false }: Opt
       meals: () => meals,
       calendar: () => calendar,
       batches: () => batches,
+      /** Meals already cooked (by the other phone), for history: `[date, meal, dish keys]`. */
+      addCookedMeals(...rows: [string, MealRecord['meal'], string[]][]) {
+        const hid = household!.id
+        for (const [date, meal, keys] of rows) {
+          const id = `${hid}:${date}:${meal}`
+          meals = [
+            ...meals.filter((m) => m.id !== id),
+            {
+              id,
+              household_id: hid,
+              date,
+              meal,
+              dish_ids: keys.map((k) => `${hid}:dish:${k}`),
+              dish_names: [],
+              status: 'cooked',
+              cooked_by: 'user-2',
+              cooked_at: `${date}T03:00:00.000Z`,
+              created_by: 'user-2',
+              created_at: T0,
+              updated_by: 'user-2',
+              updated_at: T0,
+            },
+          ]
+        }
+      },
       /** Another item in the household (chicken, fish), as the catalogue would have it. */
       addItem(key: string, name_ta: string, name_en: string, extra: Partial<Item> = {}) {
         const hid = household!.id
