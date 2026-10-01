@@ -1,6 +1,7 @@
 // Types for the Supabase schema, in the shape `supabase gen types` produces.
 // Keep in step with supabase/migrations/. Tables are added here batch by batch.
 
+import type { CalendarDay as CalendarDayInterface } from '../calendar/types.ts'
 import type { Dish as DishInterface } from '../dishes/types.ts'
 import type { Leftover as LeftoverInterface, MealRecord as MealInterface } from '../plan/types.ts'
 import type { Item as ItemInterface, StockEvent as StockEventInterface } from '../stock/types.ts'
@@ -13,6 +14,7 @@ type StockEvent = Plain<StockEventInterface>
 type Dish = Plain<DishInterface>
 type MealRow = Plain<MealInterface>
 type Leftover = Plain<LeftoverInterface>
+type CalendarDay = Plain<CalendarDayInterface>
 
 type Timestamps = {
   created_by: string | null
@@ -110,6 +112,12 @@ export type Database = {
         Row: Leftover
         Insert: Partial<Leftover> & Pick<Leftover, 'id' | 'household_id' | 'name_ta' | 'name_en' | 'servings' | 'expires_on'>
         Update: Partial<Pick<Leftover, 'servings' | 'expires_on' | 'eaten_at' | 'eaten_by'>>
+        Relationships: []
+      }
+      calendar_days: {
+        Row: CalendarDay
+        Insert: Partial<CalendarDay> & Pick<CalendarDay, 'id' | 'household_id' | 'date' | 'type'>
+        Update: Partial<Pick<CalendarDay, 'date' | 'end_date' | 'label' | 'verified' | 'note'>>
         Relationships: []
       }
     }
