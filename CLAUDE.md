@@ -100,7 +100,11 @@ Colourful but calm. Colour always carries meaning. Never rely on colour alone; p
 - [x] Batch 5: Tamil calendar rules (done 2026-10-01: veg-only days (Saturdays by rule; Amavasai,
       Kiruthigai, Puratasi from published calendars, confirmed in the app), non-veg rhythm, Plan chip and
       filtering, Calendar screen, calendar in backups. Migrations 0009-0010 applied. Tested on both phones.)
-- [ ] Batch 6: Prepared items and multi-day batches
+- [x] Batch 6: Prepared items and multi-day batches (done 2026-10-01: 10 prepared items from a reviewed
+      catalogue (one idli/dosa batter, a separate paruppu dosa batter, koozh, dough, paste, podi, thokku),
+      event-based batches with stage prompts, planning backwards, late-step shifting, learned ferment time,
+      keep it going, the In progress strip on Plan, cooking from batches, ready batches on Stock, batches in
+      backups. Migrations 0011–0012 applied. Tested on both phones.)
 - [ ] Batch 7: Shopping list
 - [ ] Batch 8: Reminders
 - [ ] Batch 9: Nutrition
