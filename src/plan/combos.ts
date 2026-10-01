@@ -9,13 +9,21 @@ export const MAX_SIDES = 2
 
 export interface Combo {
   main: Dish
+  /** Plain rice, for a gravy eaten with rice (kuzhambu, sambar, rasam, non-veg gravy). */
+  base: Dish | null
   sides: Dish[]
   /** The leftover serving one of the sides, if any: it's already cooked. */
   leftover: Leftover | null
 }
 
-/** Dishes that make a meal on their own. Other mains are the ones with sides of their own. */
-const STANDALONE: ReadonlySet<DishType> = new Set(['tiffin', 'variety_rice', 'drink'])
+/** Dishes that make a meal on their own. */
+const STANDALONE: ReadonlySet<DishType> = new Set(['tiffin', 'variety_rice', 'drink', 'snack'])
+
+/** Gravies eaten with rice: a main at lunch or dinner when they have sides of their own. */
+const WITH_RICE: ReadonlySet<DishType> = new Set(['kuzhambu', 'sambar', 'rasam', 'nonveg_gravy'])
+
+/** The catalogue's plain rice, served with gravy mains. */
+export const PLAIN_RICE_KEY = 'sadam'
 
 /**
  * What kind of side a dish is: a combo gets at most one of each, so plain rice comes
@@ -39,8 +47,13 @@ const SIDE_KIND: Record<DishType, string> = {
 /** Gravies that go with idli, dosa or chapati even if not listed as their side. */
 const TIFFIN_GRAVIES: ReadonlySet<DishType> = new Set(['kuzhambu', 'sambar', 'kootu', 'nonveg_gravy'])
 
+/**
+ * Tiffin, rice, drinks and snacks make a meal; so does a gravy with its own sides at
+ * lunch or dinner (rice, kuzhambu and a poriyal). A sambar is never breakfast on its own.
+ */
 export function isMainFor(dish: Dish, meal: Meal): boolean {
-  return !dish.dont_suggest && dish.meals.includes(meal) && (dish.side_ids.length > 0 || STANDALONE.has(dish.type))
+  if (dish.dont_suggest || !dish.meals.includes(meal)) return false
+  return STANDALONE.has(dish.type) || (meal !== 'breakfast' && WITH_RICE.has(dish.type) && dish.side_ids.length > 0)
 }
 
 /** Leftovers still good to eat today, newest first. */
@@ -54,7 +67,12 @@ export function usableLeftovers(leftovers: readonly Leftover[], today: LocalDate
  * The sides for a main: a leftover first if it fits (one of its sides, or a gravy with
  * tiffin), then its ranked sides, skipping hidden ones and a second side of the same kind.
  */
-export function comboFor(main: Dish, dishesById: ReadonlyMap<string, Dish>, leftovers: readonly Leftover[] = []): Combo {
+export function comboFor(
+  main: Dish,
+  dishesById: ReadonlyMap<string, Dish>,
+  leftovers: readonly Leftover[] = [],
+  plainRice: Dish | null = null,
+): Combo {
   const sides: Dish[] = []
   const kinds = new Set<string>()
   const take = (d: Dish) => {
@@ -78,13 +96,14 @@ export function comboFor(main: Dish, dishesById: ReadonlyMap<string, Dish>, left
     const d = dishesById.get(id)
     if (d && !d.dont_suggest) take(d)
   }
-  return { main, sides, leftover }
+  return { main, base: WITH_RICE.has(main.type) && plainRice && plainRice.id !== main.id ? plainRice : null, sides, leftover }
 }
 
 /** Every combo for a meal, one per main dish. */
 export function combosFor(meal: Meal, dishes: readonly Dish[], leftovers: readonly Leftover[] = []): Combo[] {
   const byId = new Map(dishes.map((d) => [d.id, d]))
-  return dishes.filter((d) => isMainFor(d, meal)).map((d) => comboFor(d, byId, leftovers))
+  const plainRice = dishes.find((d) => d.catalog_key === PLAIN_RICE_KEY) ?? null
+  return dishes.filter((d) => isMainFor(d, meal)).map((d) => comboFor(d, byId, leftovers, plainRice))
 }
 
 /**

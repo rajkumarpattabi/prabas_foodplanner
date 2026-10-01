@@ -149,6 +149,7 @@ function ctx(extra: Partial<PlanContext> = {}): PlanContext {
       ['brinjal', 500],
     ]),
     urgentItemIds: new Set(),
+    trackedItemIds: new Set(),
     history: new Map(),
     itemName: (i) => i.name_en,
     dishName: (d) => d.name_en,
@@ -196,6 +197,18 @@ describe('combos', () => {
     const mains = (m: Parameters<typeof isMainFor>[1]) => dishes.filter((d) => isMainFor(d, m)).map((d) => d.id)
     expect(mains('breakfast')).toEqual(['pongal', 'idli', 'ragi_koozh'])
     expect(mains('lunch')).toEqual(['vatha_kuzhambu', 'sadam', 'curd_rice'])
+  })
+
+  test('a gravy is a main only at lunch or dinner, and comes with plain rice', () => {
+    const sambarWithSides = { ...D.brinjal_sambar, side_ids: ['beans_poriyal'] }
+    expect(isMainFor(sambarWithSides, 'breakfast')).toBe(false)
+    expect(isMainFor(sambarWithSides, 'lunch')).toBe(true)
+    const rice = dish('rice_dish', { catalog_key: 'sadam', type: 'variety_rice', meals: ['lunch'], ingredients: [{ item_id: 'rice', quantity: 500 }] })
+    const combo = combosFor('lunch', [...dishes.filter((d) => d.id !== 'brinjal_sambar' && d.id !== 'sadam'), sambarWithSides, rice]).find((c) => c.main.id === 'brinjal_sambar')!
+    expect(combo.base?.id).toBe('rice_dish')
+    expect(cookLines(combo).find((l) => l.item_id === 'rice')?.quantity).toBe(500)
+    expect(dishNames(combo).map((n) => n.dish_id)).toEqual(['brinjal_sambar', 'rice_dish', 'beans_poriyal'])
+    expect(comboFor(D.pongal, dishesById, [], rice).base).toBeNull()
   })
 
   test('sides: ranked, one of each kind, skipping hidden ones', () => {
@@ -274,6 +287,14 @@ describe('scoring', () => {
     expect(s.factors.inStock).toBe(0)
   })
 
+  test('spices and oils only count as needed once they have been stocked here', () => {
+    const pepper = item('pepper', 'Pepper', 'spice')
+    const withPepper = { ...D.pongal, ingredients: [...D.pongal.ingredients, { item_id: 'pepper', quantity: 10 }] }
+    const base = { itemsById: new Map([...itemsById, ['pepper', pepper]]) }
+    expect(scoreCombo(comboFor(withPepper, dishesById), ctx(base)).needs).toEqual([])
+    expect(scoreCombo(comboFor(withPepper, dishesById), ctx({ ...base, trackedItemIds: new Set(['pepper']) })).needs).toEqual(['Pepper'])
+  })
+
   test('optional ingredients never count as needed', () => {
     expect(scoreCombo(comboFor(D.pongal, dishesById), ctx()).needs).toEqual([])
   })
@@ -283,8 +304,10 @@ describe('scoring', () => {
     const fresh = scoreCombo(comboFor(D.sadam, dishesById), ctx())
     expect(recent.score).toBeLessThan(fresh.score - 5)
     const old = scoreCombo(comboFor(D.sadam, dishesById), ctx({ history: new Map([['sadam', { lastCooked: '2026-09-10', timesCooked: 3 }]]) }))
-    expect(old.why).toContain('Not had for 3 weeks')
+    expect(old.score).toBeGreaterThan(fresh.score)
+    // The card's cooked note says how long; the why line doesn't repeat it.
     expect(old.cooked).toBe('Cooked 21 days ago')
+    expect(old.why).not.toMatch(/week|different/)
   })
 
   test('a leftover lifts its combo, is named, and its dish needs no ingredients', () => {

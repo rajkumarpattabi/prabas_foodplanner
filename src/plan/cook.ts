@@ -43,7 +43,7 @@ export function cookEvents(lines: readonly CookLine[], stockTotals: ReadonlyMap<
   })
 }
 
-/** The names to keep with the meal, main first. */
+/** The names to keep with the meal: the main first, then its rice, then the sides. */
 export function dishNames(combo: Combo): MealDishName[] {
-  return [combo.main, ...combo.sides].map((d) => ({ dish_id: d.id, name_ta: d.name_ta, name_en: d.name_en, type: d.type }))
+  return [combo.main, ...(combo.base ? [combo.base] : []), ...combo.sides].map((d) => ({ dish_id: d.id, name_ta: d.name_ta, name_en: d.name_en, type: d.type }))
 }

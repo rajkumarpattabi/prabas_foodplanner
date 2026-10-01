@@ -484,6 +484,35 @@ export function fakeHouseholdApi({ withHousehold = false, offline = false }: Opt
         dishes = dishes.map((d) => (d.id === id ? dish : d))
         if (!net.offline) tellDish({ table: 'dishes', row: dish })
       },
+      /** More dishes in the library (as if added earlier), for tests that need more choice. */
+      addDishes(...extra: (Pick<Dish, 'id' | 'name_en'> & Partial<Dish>)[]) {
+        for (const d of extra) {
+          const dish: Dish = {
+            household_id: household!.id,
+            catalog_key: null,
+            name_ta: `${d.name_en} (ta)`,
+            aliases: [],
+            type: 'tiffin',
+            meals: ['breakfast'],
+            is_veg: true,
+            tags: [],
+            ingredients: [],
+            side_ids: [],
+            prep_plan: null,
+            is_favourite: false,
+            is_kids_favourite: false,
+            dont_suggest: false,
+            notes: null,
+            created_by: null,
+            created_at: T0,
+            updated_by: null,
+            updated_at: T0,
+            ...d,
+          }
+          dishes = [...dishes, dish]
+          tellDish({ table: 'dishes', row: dish })
+        }
+      },
       /** The other phone deletes a dish. */
       otherPhoneDeletesDish: (id: string) => deleteDish(id),
       /** The other phone edits an item. */

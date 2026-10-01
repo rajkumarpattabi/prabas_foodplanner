@@ -50,6 +50,8 @@ export interface PlanContext {
   stockTotals: ReadonlyMap<string, number>
   /** Items to use today or soon (from the Stock screen's "Use soon"). */
   urgentItemIds: ReadonlySet<string>
+  /** Items that have ever been stocked here. Spices and oils only count once they are. */
+  trackedItemIds: ReadonlySet<string>
   history: ReadonlyMap<string, DishHistory>
   /** Names in the person's chosen script. */
   itemName: (item: Item) => string
@@ -69,17 +71,27 @@ export interface Scored {
   cooked: string
 }
 
-/** The ingredients still to cook: the main's and the sides', except a leftover side's. */
+/** The ingredients still to cook: the main's, the rice's, and the sides', except a leftover side's. */
 export function comboIngredients(combo: Combo) {
-  const dishes = [combo.main, ...combo.sides.filter((s) => s.id !== combo.leftover?.dish_id)]
+  const dishes = [combo.main, ...(combo.base ? [combo.base] : []), ...combo.sides.filter((s) => s.id !== combo.leftover?.dish_id)]
   return dishes.flatMap((d) => d.ingredients)
 }
+
+/**
+ * Spices and oils are in almost everything and rarely stocked item by item, so they
+ * only count as needed once someone has tracked them. Everything else always counts.
+ */
+const PANTRY = new Set(['spice', 'oil'])
 
 const list = (names: string[]) => (names.length <= 1 ? names.join('') : `${names.slice(0, -1).join(', ')} and ${names.at(-1)}`)
 
 export function scoreCombo(combo: Combo, ctx: PlanContext): Scored {
   const ingredients = comboIngredients(combo)
-  const needed = ingredients.filter((i) => !i.optional)
+  const needed = ingredients.filter((i) => {
+    if (i.optional) return false
+    const item = ctx.itemsById.get(i.item_id)
+    return !item || !PANTRY.has(item.category) || ctx.trackedItemIds.has(i.item_id)
+  })
   const have = (itemId: string) => ctx.stockTotals.get(itemId) ?? 0
 
   const urgent = [...new Set(ingredients.map((i) => i.item_id))].filter((id) => ctx.urgentItemIds.has(id) && have(id) > 0)
@@ -119,7 +131,8 @@ export function scoreCombo(combo: Combo, ctx: PlanContext): Scored {
     inStock: () => (raw.inStock === 1 ? "Everything's in stock" : null),
     favourite: () => 'A favourite',
     kidsFavourite: () => 'Kids love it',
-    daysSinceCooked: () => (days === null ? 'Something different' : days >= 14 ? `Not had for ${Math.floor(days / 7)} weeks` : null),
+    // The card's "Cooked 45 days ago" note says this already.
+    daysSinceCooked: () => null,
     recentlyCooked: () => null,
     leftover: () => (leftoverDish ? `Uses leftover ${ctx.dishName(leftoverDish)}` : null),
     calendar: () => null,
