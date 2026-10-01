@@ -6,6 +6,7 @@ import type { Dish as DishInterface } from '../dishes/types.ts'
 import type { Leftover as LeftoverInterface, MealRecord as MealInterface } from '../plan/types.ts'
 import type { Batch as BatchInterface, BatchEvent as BatchEventInterface } from '../prepared/types.ts'
 import type { ShoppingItem as ShoppingItemInterface } from '../shop/types.ts'
+import type { PushSubscriptionRow as PushInterface, Reminder as ReminderInterface, ReminderSettings as ReminderSettingsInterface } from '../reminders/types.ts'
 import type { Item as ItemInterface, StockEvent as StockEventInterface } from '../stock/types.ts'
 
 // supabase-js needs plain object types for rows (interfaces don't fit its table
@@ -16,6 +17,9 @@ type StockEvent = Plain<StockEventInterface>
 type Batch = Plain<BatchInterface>
 type BatchEvent = Plain<BatchEventInterface>
 type ShoppingItem = Plain<ShoppingItemInterface>
+type Reminder = Plain<ReminderInterface>
+type ReminderSettings = Plain<ReminderSettingsInterface>
+type PushRow = Plain<PushInterface>
 type Dish = Plain<DishInterface>
 type MealRow = Plain<MealInterface>
 type Leftover = Plain<LeftoverInterface>
@@ -137,6 +141,24 @@ export type Database = {
         Update: never
         Relationships: []
       }
+      reminders: {
+        Row: Reminder
+        Insert: Partial<Reminder> & Pick<Reminder, 'id' | 'household_id' | 'type' | 'title' | 'expires_at'>
+        Update: Partial<Pick<Reminder, 'type' | 'title' | 'body' | 'url' | 'due_at' | 'due_date' | 'at_evening' | 'expires_at'>>
+        Relationships: []
+      }
+      reminder_settings: {
+        Row: ReminderSettings
+        Insert: Partial<ReminderSettings> & Pick<ReminderSettings, 'user_id' | 'household_id'>
+        Update: Partial<Pick<ReminderSettings, 'types' | 'evening_time' | 'quiet_from' | 'quiet_to' | 'timezone'>>
+        Relationships: []
+      }
+      push_subscriptions: {
+        Row: PushRow
+        Insert: never
+        Update: never
+        Relationships: []
+      }
       shopping_items: {
         Row: ShoppingItem
         Insert: Partial<ShoppingItem> & Pick<ShoppingItem, 'id' | 'household_id' | 'item_id' | 'kind'>
@@ -151,6 +173,7 @@ export type Database = {
       rotate_join_code: { Args: Record<string, never>; Returns: string }
       is_member: { Args: { hid: string }; Returns: boolean }
       shares_household: { Args: { other: string }; Returns: boolean }
+      register_push: { Args: { p_endpoint: string; p_p256dh: string; p_auth: string; p_label: string }; Returns: string }
       restore_snapshot: { Args: { p_tables: Record<string, Record<string, unknown>[]> }; Returns: undefined }
     }
     Enums: { [_ in never]: never }
