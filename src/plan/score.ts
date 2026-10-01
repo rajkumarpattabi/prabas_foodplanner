@@ -4,6 +4,9 @@
 import type { Dish } from '../dishes/types.ts'
 import type { Item } from '../stock/types.ts'
 import type { LocalDate } from '../lib/dates.ts'
+import { GROUP_WEIGHT, type Gap, type Nutrition } from '../nutrition/balance.ts'
+import { GROUP_WORDS } from '../nutrition/groups.ts'
+import { fills } from '../nutrition/swaps.ts'
 import { preparedUses } from '../prepared/plan.ts'
 import type { ReadyPrepared } from '../prepared/ready.ts'
 import { comboIsNonVeg, type Combo } from './combos.ts'
@@ -32,7 +35,8 @@ export const WEIGHTS = {
   prepared: 2,
   /** Batter a couple of days old, for a dish that's better with it (uthappam, kuzhi paniyaram). */
   agedBatter: 2,
-  nutrition: 0,
+  /** Fills a gap in the last fortnight's food groups (see src/nutrition/balance.ts). */
+  nutrition: 3,
 } as const
 
 export type Factor = keyof typeof WEIGHTS
@@ -50,6 +54,10 @@ export const SCORING = {
   whyThreshold: 0.6,
   /** Batter this many days past ready counts as aged. */
   agedDays: 2,
+  /** Filling gaps worth this much (size × group weight) is the full nutrition factor. */
+  nutritionFull: 2,
+  /** On a veg-only day, veg protein counts this much more. */
+  vegProteinBoost: 1.5,
 } as const
 
 export interface PlanContext {
@@ -68,6 +76,10 @@ export interface PlanContext {
   prepared?: ReadonlyMap<string, ReadyPrepared>
   /** For naming prepared items. */
   dishesById?: ReadonlyMap<string, Dish>
+  /** The fortnight's food-group gaps (see src/nutrition/balance.ts). */
+  nutrition?: Nutrition
+  /** A veg-only day (Saturday, Amavasai, Puratasi…): veg protein counts more. */
+  vegOnlyDay?: boolean
   /** Names in the person's chosen script. */
   itemName: (item: Item) => string
   dishName: (dish: Dish) => string
@@ -148,6 +160,13 @@ export function scoreCombo(combo: Combo, ctx: PlanContext): Scored {
   const readyUses = uses.filter(readyFor)
   const aged = readyUses.find((u) => u.prefers_aged && readyFor(u)!.ageDays >= SCORING.agedDays)
 
+  // Food groups: how much of the fortnight's gaps this fills, legumes counting most.
+  const n = ctx.nutrition
+  const vegProtein = !!ctx.vegOnlyDay && !comboIsNonVeg(combo)
+  const gapWorth = (g: Gap) => g.size * GROUP_WEIGHT[g.group] * (vegProtein && (g.group === 'legume' || g.group === 'protein') ? SCORING.vegProteinBoost : 1)
+  const filled = n ? n.gaps.filter((g) => fills(toCook(combo), g, n, ctx.itemsById)).sort((a, b) => gapWorth(b) - gapWorth(a)) : []
+  const nutritionRaw = Math.min(1, filled.reduce((s, g) => s + gapWorth(g), 0) / SCORING.nutritionFull)
+
   const h = ctx.history.get(combo.main.id)
   const days = daysSince(h?.lastCooked ?? null, ctx.today)
   const effectiveDays = days ?? SCORING.neverCookedDays
@@ -163,7 +182,7 @@ export function scoreCombo(combo: Combo, ctx: PlanContext): Scored {
     calendar: ctx.nonVegDay && comboIsNonVeg(combo) ? 1 : 0,
     prepared: readyUses.length ? 1 : 0,
     agedBatter: aged ? 1 : 0,
-    nutrition: 0,
+    nutrition: nutritionRaw,
   }
   const factors = Object.fromEntries(
     (Object.keys(WEIGHTS) as Factor[]).map((f) => [f, raw[f] * WEIGHTS[f]]),
@@ -198,7 +217,13 @@ export function scoreCombo(combo: Combo, ctx: PlanContext): Scored {
       const n = aged && preparedName(aged.dish_id)
       return n ? `${n} is ${readyFor(aged!)!.ageDays} days old` : null
     },
-    nutrition: () => null,
+    nutrition: () => {
+      const g = filled[0]
+      if (!g) return null
+      if (g.group === 'variety') return "A vegetable you haven't had lately"
+      const since = g.daysSince === null ? ' (none in 2 weeks)' : g.daysSince >= 5 ? ` (none in ${g.daysSince} days)` : ''
+      return `Adds ${GROUP_WORDS[g.group]}${since}`
+    },
   }
   const why = (Object.keys(factors) as Factor[])
     .filter((f) => factors[f] >= SCORING.whyThreshold)

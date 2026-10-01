@@ -254,7 +254,7 @@ describe('combos', () => {
 })
 
 describe('scoring', () => {
-  test('weights are named, and nutrition waits for its batch', () => {
+  test('weights are named', () => {
     expect(Object.keys(WEIGHTS)).toEqual([
       'nearExpiry',
       'inStock',
@@ -268,7 +268,7 @@ describe('scoring', () => {
       'agedBatter',
       'nutrition',
     ])
-    expect(WEIGHTS.nutrition).toBe(0)
+    expect(WEIGHTS.nutrition).toBeGreaterThan(0)
   })
 
   test('the score is the sum of named, weighted factors', () => {
