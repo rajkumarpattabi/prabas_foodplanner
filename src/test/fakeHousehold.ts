@@ -9,6 +9,8 @@ import { DishError, type DishApi } from '../dishes/api.ts'
 import type { Dish } from '../dishes/types.ts'
 import type { TableChange } from '../offline/useTableSync.ts'
 import { MealError, type MealApi } from '../plan/api.ts'
+import { CalendarError, type CalendarApi } from '../calendar/api.ts'
+import type { CalendarDay } from '../calendar/types.ts'
 import type { Leftover, MealRecord } from '../plan/types.ts'
 import { StockError, type RemoteChange, type StockApi } from '../stock/api.ts'
 import type { Item, StockEvent } from '../stock/types.ts'
@@ -153,6 +155,9 @@ export function fakeHouseholdApi({ withHousehold = false, offline = false }: Opt
   let leftovers: Leftover[] = []
   const mealListeners = new Set<(change: TableChange) => void>()
   const tellMeal = (change: TableChange) => mealListeners.forEach((l) => l(structuredClone(change)))
+  let calendar: CalendarDay[] = []
+  const calendarListeners = new Set<(change: TableChange) => void>()
+  const tellCalendar = (change: TableChange) => calendarListeners.forEach((l) => l(structuredClone(change)))
   const seed = (hid: string) => {
     items = starterItems(hid)
     dishes = starterDishes(hid)
@@ -265,6 +270,48 @@ export function fakeHouseholdApi({ withHousehold = false, offline = false }: Opt
     }),
   } satisfies MealApi
 
+  /** Restricted days, with the same rules as the database. */
+  const calendarApi = {
+    load: vi.fn(async (householdId: string) => {
+      if (net.offline) throw new CalendarError('offline')
+      return structuredClone(calendar.filter((d) => d.household_id === householdId))
+    }),
+    subscribe: vi.fn((_householdId: string, onChange: (change: TableChange) => void) => {
+      calendarListeners.add(onChange)
+      return () => void calendarListeners.delete(onChange)
+    }),
+  } satisfies CalendarApi
+
+  const executeCalendar = (op: OutboxOp): OpResult => {
+    const valid = (d: Partial<CalendarDay>) => !d.end_date || (d.type === 'puratasi' && d.end_date >= (d.date ?? ''))
+    if (op.kind === 'insert') {
+      const row = op.row as unknown as CalendarDay
+      if (row.household_id !== household?.id || row.created_by !== me) return { status: 'reject', message: 'row-level security' }
+      if (!valid(row)) return { status: 'reject', message: 'check constraint' }
+      if (calendar.some((d) => d.id === row.id)) return { status: 'ok' }
+      if (calendar.some((d) => d.household_id === row.household_id && d.date === row.date && d.type === row.type)) {
+        return { status: 'reject', message: 'duplicate key' }
+      }
+      const now = new Date().toISOString()
+      const day = { ...row, created_at: now, updated_at: now }
+      calendar = [...calendar, day]
+      tellCalendar({ table: 'calendar_days', row: day })
+      return { status: 'ok' }
+    }
+    const current = calendar.find((d) => d.id === op.match.id && d.household_id === household?.id)
+    if (!current) return { status: 'ok' }
+    if (op.kind === 'delete') {
+      calendar = calendar.filter((d) => d.id !== current.id)
+      tellCalendar({ table: 'calendar_days', deletedId: current.id })
+      return { status: 'ok' }
+    }
+    const next = { ...current, ...(op.patch as Partial<CalendarDay>), updated_by: me, updated_at: new Date().toISOString() }
+    if (!valid(next)) return { status: 'reject', message: 'check constraint' }
+    calendar = calendar.map((d) => (d.id === next.id ? next : d))
+    tellCalendar({ table: 'calendar_days', row: next })
+    return { status: 'ok' }
+  }
+
   const executeMeal = (op: OutboxOp): OpResult => {
     const table = op.table as 'meals' | 'leftovers'
     const rows = (): { id: string; household_id: string }[] => (table === 'meals' ? meals : leftovers)
@@ -350,6 +397,7 @@ export function fakeHouseholdApi({ withHousehold = false, offline = false }: Opt
     if (op.kind === 'insert' && (op.table === 'items' || op.table === 'stock_events')) return insertStock(op)
     if (op.table === 'dishes') return executeDish(op)
     if (op.table === 'meals' || op.table === 'leftovers') return executeMeal(op)
+    if (op.table === 'calendar_days') return executeCalendar(op)
     if (op.kind !== 'update') return { status: 'reject', message: 'not supported in the fake' }
     const stamp = { updated_by: me, updated_at: new Date().toISOString() }
     if (op.table === 'items') {
@@ -441,6 +489,7 @@ export function fakeHouseholdApi({ withHousehold = false, offline = false }: Opt
     stockApi,
     dishApi,
     mealApi,
+    calendarApi,
     execute,
     /** Read the "server" side, to check what was actually saved. */
     server: {
@@ -457,6 +506,33 @@ export function fakeHouseholdApi({ withHousehold = false, offline = false }: Opt
       },
       dishes: () => dishes,
       meals: () => meals,
+      calendar: () => calendar,
+      /** Restricted days already in the household (as seeded: unverified unless said). */
+      addCalendarDays(...days: (Pick<CalendarDay, 'date' | 'type'> & Partial<CalendarDay>)[]) {
+        for (const d of days) {
+          const day: CalendarDay = {
+            id: `cal-${calendar.length + 1}`,
+            household_id: household!.id,
+            end_date: null,
+            label: '',
+            verified: false,
+            note: null,
+            created_by: null,
+            created_at: T0,
+            updated_by: null,
+            updated_at: T0,
+            ...d,
+          }
+          calendar = [...calendar, day]
+          if (!net.offline) tellCalendar({ table: 'calendar_days', row: day })
+        }
+      },
+      /** The other phone confirms or edits a day. */
+      otherPhoneEditsCalendarDay(id: string, patch: Partial<CalendarDay>) {
+        const day = { ...calendar.find((d) => d.id === id)!, ...patch, updated_by: 'user-2', updated_at: new Date().toISOString() }
+        calendar = calendar.map((d) => (d.id === id ? day : d))
+        if (!net.offline) tellCalendar({ table: 'calendar_days', row: day })
+      },
       leftovers: () => leftovers,
       /** The other phone (user-2) plans or cooks a meal. */
       otherPhonePutsMeal(row: Pick<MealRecord, 'date' | 'meal' | 'dish_ids'> & Partial<MealRecord>) {

@@ -1,4 +1,5 @@
 import Dexie, { type EntityTable } from 'dexie'
+import type { CalendarDay } from '../calendar/types.ts'
 import type { Dish } from '../dishes/types.ts'
 import type { Leftover, MealRecord } from '../plan/types.ts'
 import type { Item, StockEvent } from '../stock/types.ts'
@@ -59,6 +60,7 @@ export class PrabasDb extends Dexie {
   dishes!: EntityTable<Dish, 'id'>
   meals!: EntityTable<MealRecord, 'id'>
   leftovers!: EntityTable<Leftover, 'id'>
+  calendar_days!: EntityTable<CalendarDay, 'id'>
 
   constructor(name = 'prabas') {
     super(name)
@@ -78,6 +80,9 @@ export class PrabasDb extends Dexie {
       meals: 'id, household_id, date',
       leftovers: 'id, household_id',
     })
+    this.version(5).stores({
+      calendar_days: 'id, household_id, date',
+    })
   }
 
   async readCache<T>(key: string): Promise<T | null> {
@@ -90,7 +95,7 @@ export class PrabasDb extends Dexie {
 
   /** On log out: nothing from one person's session stays on the device for the next. */
   async clearAll(): Promise<void> {
-    const tables = [this.outbox, this.cache, this.items, this.stock_events, this.dishes, this.meals, this.leftovers]
+    const tables = [this.outbox, this.cache, this.items, this.stock_events, this.dishes, this.meals, this.leftovers, this.calendar_days]
     await this.transaction('rw', tables, async () => {
       await Promise.all(tables.map((t) => t.clear()))
     })
