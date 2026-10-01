@@ -61,6 +61,16 @@ export function useTableSync({ householdId, userId, cacheKey, tables, load, subs
 
   const pendingOps = useCallback(() => db.outbox.where('userId').equals(userId).toArray(), [db, userId])
 
+  // A reload can finish after the screen has gone (logged out, or a test ended): its
+  // result is saved, but nothing is left to update.
+  const mounted = useRef(true)
+  useEffect(() => {
+    mounted.current = true
+    return () => {
+      mounted.current = false
+    }
+  }, [])
+
   const loadOnce = useCallback(async () => {
     const fetchedFrom = Date.now()
     const server = await load()
@@ -99,11 +109,13 @@ export function useTableSync({ householdId, userId, cacheKey, tables, load, subs
           again.current = false
           try {
             await loadOnce()
-            setLoaded(true)
-            setError(null)
+            if (mounted.current) {
+              setLoaded(true)
+              setError(null)
+            }
           } catch (e) {
             // With data already on this device, stay quiet and show that.
-            setError((e as Error)?.message ?? 'Something went wrong.')
+            if (mounted.current) setError((e as Error)?.message ?? 'Something went wrong.')
           }
         } while (again.current)
       } finally {

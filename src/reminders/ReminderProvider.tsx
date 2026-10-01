@@ -1,5 +1,5 @@
 import { useLiveQuery } from 'dexie-react-hooks'
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import type { NewOp } from '../offline/outbox.ts'
 import { useSync } from '../offline/syncContext.ts'
 import { useTableSync, type TableChange } from '../offline/useTableSync.ts'
@@ -45,13 +45,22 @@ export function ReminderProvider({ api, householdId, userId, children }: Props) 
   // Settings: from the cache at once, then from the server (unless a change is waiting to go).
   const settingsKey = `reminder-settings:${userId}`
   const [stored, setStored] = useState<ReminderSettings | null | undefined>(undefined)
+  // The load can finish after this has gone (logged out, or a test ended).
+  const mounted = useRef(true)
+  useEffect(() => {
+    mounted.current = true
+    return () => {
+      mounted.current = false
+    }
+  }, [])
   const loadSettings = useCallback(async () => {
     const cached = await db.readCache<ReminderSettings>(settingsKey)
+    if (!mounted.current) return
     setStored((s) => (s === undefined ? cached : s))
     try {
       const server = await api.loadSettings(userId)
       const waiting = (await db.outbox.where('userId').equals(userId).toArray()).some((op) => op.table === 'reminder_settings')
-      if (!waiting) {
+      if (!waiting && mounted.current) {
         setStored(server)
         await db.writeCache(settingsKey, server)
       }
