@@ -150,6 +150,7 @@ function ctx(extra: Partial<PlanContext> = {}): PlanContext {
     ]),
     urgentItemIds: new Set(),
     trackedItemIds: new Set(),
+    nonVegDay: false,
     history: new Map(),
     itemName: (i) => i.name_en,
     dishName: (d) => d.name_en,
@@ -250,7 +251,7 @@ describe('combos', () => {
 })
 
 describe('scoring', () => {
-  test('weights are named, and calendar and nutrition wait for their batches', () => {
+  test('weights are named, and nutrition waits for its batch', () => {
     expect(Object.keys(WEIGHTS)).toEqual([
       'nearExpiry',
       'inStock',
@@ -262,7 +263,6 @@ describe('scoring', () => {
       'calendar',
       'nutrition',
     ])
-    expect(WEIGHTS.calendar).toBe(0)
     expect(WEIGHTS.nutrition).toBe(0)
   })
 
@@ -361,6 +361,42 @@ describe('suggestions', () => {
     const s = suggest(combosFor('breakfast', Array.from({ length: 5 }, (_, i) => dish(`t${i}`, {}))), ctx(), 's')
     expect(s.rediscovery).not.toBeNull()
     expect(s.picks).toHaveLength(4)
+  })
+})
+
+describe('veg-only days and non-veg days', () => {
+  const eggRice = dish('egg_rice', { type: 'variety_rice', meals: ['lunch'], is_veg: false })
+  const fishFry = dish('fish_fry', { type: 'nonveg_fry', meals: ['lunch'], is_veg: false })
+  const sadamWithFish = { ...D.sadam, side_ids: ['fish_fry', 'brinjal_sambar', 'beans_poriyal'] }
+  const all = [...dishes.filter((d) => d.id !== 'sadam'), eggRice, fishFry, sadamWithFish]
+  const byId = new Map(all.map((d) => [d.id, d]))
+
+  test('on a veg-only day: no non-veg mains, sides, or leftovers', () => {
+    const veg = combosFor('lunch', all, [], { vegOnly: true })
+    expect(veg.map((c) => c.main.id)).not.toContain('egg_rice')
+    expect(veg.find((c) => c.main.id === 'sadam')!.sides.map((s) => s.id)).toEqual(['brinjal_sambar', 'beans_poriyal'])
+    // Any other day, they're back.
+    const any = combosFor('lunch', all)
+    expect(any.map((c) => c.main.id)).toContain('egg_rice')
+    expect(any.find((c) => c.main.id === 'sadam')!.sides.map((s) => s.id)).toEqual(['fish_fry', 'brinjal_sambar'])
+    // A leftover chicken kuzhambu isn't offered with idli on a veg-only day.
+    expect(comboFor(D.idli, dishesById, [leftover('chicken_kuzhambu')], null, true).leftover).toBeNull()
+  })
+
+  test('on a veg-only day, swap options are veg too', () => {
+    const combo = comboFor(sadamWithFish, byId, [], null, true)
+    const other = dish('egg_poriyal', { type: 'poriyal', is_veg: false })
+    expect(alternativeSides(combo, D.beans_poriyal, [...all, other], 12, true).map((d) => d.id)).not.toContain('egg_poriyal')
+    expect(alternativeSides(combo, D.beans_poriyal, [...all, other]).map((d) => d.id)).toContain('egg_poriyal')
+  })
+
+  test('on a non-veg day, non-veg combos get the calendar nudge and say so', () => {
+    const fish = comboFor(sadamWithFish, byId)
+    const plain = comboFor(D.curd_rice, byId)
+    expect(scoreCombo(fish, ctx({ nonVegDay: true })).factors.calendar).toBe(WEIGHTS.calendar)
+    expect(scoreCombo(fish, ctx({ nonVegDay: true })).why).toContain('Non-veg day')
+    expect(scoreCombo(plain, ctx({ nonVegDay: true })).factors.calendar).toBe(0)
+    expect(scoreCombo(fish, ctx({ nonVegDay: false })).factors.calendar).toBe(0)
   })
 })
 

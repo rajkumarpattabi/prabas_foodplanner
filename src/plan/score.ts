@@ -4,12 +4,12 @@
 import type { Dish } from '../dishes/types.ts'
 import type { Item } from '../stock/types.ts'
 import type { LocalDate } from '../lib/dates.ts'
-import type { Combo } from './combos.ts'
+import { comboIsNonVeg, type Combo } from './combos.ts'
 import { cookedNote, daysSince, type DishHistory } from './history.ts'
 
 /**
  * How much each factor counts. Each factor's raw value is 0 to 1, so these are the
- * most each can add. calendar (Batch 5) and nutrition (Batch 9) join later.
+ * most each can add. nutrition (Batch 9) joins later.
  */
 export const WEIGHTS = {
   /** Uses items that need using today or soon: using food before it spoils comes first. */
@@ -24,7 +24,8 @@ export const WEIGHTS = {
   recentlyCooked: -6,
   /** Finishes a leftover. */
   leftover: 4,
-  calendar: 0,
+  /** A non-veg combo on a non-veg day (Sunday and midweek, around the restricted days). */
+  calendar: 3,
   nutrition: 0,
 } as const
 
@@ -52,6 +53,8 @@ export interface PlanContext {
   urgentItemIds: ReadonlySet<string>
   /** Items that have ever been stocked here. Spices and oils only count once they are. */
   trackedItemIds: ReadonlySet<string>
+  /** A day in the non-veg rhythm (see src/calendar/rhythm.ts). */
+  nonVegDay: boolean
   history: ReadonlyMap<string, DishHistory>
   /** Names in the person's chosen script. */
   itemName: (item: Item) => string
@@ -110,7 +113,7 @@ export function scoreCombo(combo: Combo, ctx: PlanContext): Scored {
     daysSinceCooked: Math.min(effectiveDays, SCORING.fullAfterDays) / SCORING.fullAfterDays,
     recentlyCooked: days !== null && days <= SCORING.recentDays ? 1 : 0,
     leftover: combo.leftover ? 1 : 0,
-    calendar: 0,
+    calendar: ctx.nonVegDay && comboIsNonVeg(combo) ? 1 : 0,
     nutrition: 0,
   }
   const factors = Object.fromEntries(
@@ -135,7 +138,7 @@ export function scoreCombo(combo: Combo, ctx: PlanContext): Scored {
     daysSinceCooked: () => null,
     recentlyCooked: () => null,
     leftover: () => (leftoverDish ? `Uses leftover ${ctx.dishName(leftoverDish)}` : null),
-    calendar: () => null,
+    calendar: () => 'Non-veg day',
     nutrition: () => null,
   }
   const why = (Object.keys(factors) as Factor[])

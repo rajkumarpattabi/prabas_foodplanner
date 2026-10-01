@@ -72,11 +72,14 @@ export function comboFor(
   dishesById: ReadonlyMap<string, Dish>,
   leftovers: readonly Leftover[] = [],
   plainRice: Dish | null = null,
+  /** A veg-only day (Saturday, Amavasai, Puratasi…): no non-veg sides or leftovers. */
+  vegOnly = false,
 ): Combo {
   const sides: Dish[] = []
   const kinds = new Set<string>()
   const take = (d: Dish) => {
     if (sides.length >= MAX_SIDES || d.id === main.id || sides.some((s) => s.id === d.id) || kinds.has(SIDE_KIND[d.type])) return false
+    if (vegOnly && !d.is_veg) return false
     sides.push(d)
     kinds.add(SIDE_KIND[d.type])
     return true
@@ -99,23 +102,25 @@ export function comboFor(
   return { main, base: WITH_RICE.has(main.type) && plainRice && plainRice.id !== main.id ? plainRice : null, sides, leftover }
 }
 
-/** Every combo for a meal, one per main dish. */
-export function combosFor(meal: Meal, dishes: readonly Dish[], leftovers: readonly Leftover[] = []): Combo[] {
+/** Every combo for a meal, one per main dish. On a veg-only day, nothing non-veg at all. */
+export function combosFor(meal: Meal, dishes: readonly Dish[], leftovers: readonly Leftover[] = [], { vegOnly = false } = {}): Combo[] {
   const byId = new Map(dishes.map((d) => [d.id, d]))
   const plainRice = dishes.find((d) => d.catalog_key === PLAIN_RICE_KEY) ?? null
-  return dishes.filter((d) => isMainFor(d, meal)).map((d) => comboFor(d, byId, leftovers, plainRice))
+  return dishes
+    .filter((d) => isMainFor(d, meal) && (!vegOnly || d.is_veg))
+    .map((d) => comboFor(d, byId, leftovers, plainRice, vegOnly))
 }
 
 /**
  * Other sides to swap in for one: the main's other ranked sides first, then other
  * dishes of the same type. Never the main itself, hidden dishes, or sides already chosen.
  */
-export function alternativeSides(combo: Combo, replacing: Dish, dishes: readonly Dish[], limit = 12): Dish[] {
+export function alternativeSides(combo: Combo, replacing: Dish, dishes: readonly Dish[], limit = 12, vegOnly = false): Dish[] {
   const byId = new Map(dishes.map((d) => [d.id, d]))
   const taken = new Set([combo.main.id, ...combo.sides.map((s) => s.id)])
   const out: Dish[] = []
   const add = (d: Dish | undefined) => {
-    if (d && !d.dont_suggest && !taken.has(d.id) && !out.includes(d)) out.push(d)
+    if (d && !d.dont_suggest && (!vegOnly || d.is_veg) && !taken.has(d.id) && !out.includes(d)) out.push(d)
   }
   combo.main.side_ids.forEach((id) => add(byId.get(id)))
   dishes
@@ -143,6 +148,9 @@ export function comboFromMeal(
   const leftover = leftovers.find((l) => l.dish_id !== null && sides.some((s) => s.id === l.dish_id)) ?? null
   return { main, base, sides, leftover }
 }
+
+/** Is anything in it meat, fish or egg? */
+export const comboIsNonVeg = (combo: Combo) => !combo.main.is_veg || combo.sides.some((s) => !s.is_veg)
 
 /** Swap one side for another, keeping its place. */
 export function swapSide(combo: Combo, replacing: Dish, next: Dish): Combo {
