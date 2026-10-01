@@ -73,15 +73,15 @@ export interface PurchaseForm {
 }
 
 /**
- * Pre-filled: one usual step, in the item's usual unit ("250 g" rather than "0.25 kg"),
- * expiring after its usual shelf life.
+ * Pre-filled: one usual step (or the amount given, in the stored unit), in the item's
+ * usual unit ("250 g" rather than "0.25 kg"), expiring after its usual shelf life.
  */
-export function purchaseDefaults(item: PurchaseItem, today: LocalDate): PurchaseForm {
+export function purchaseDefaults(item: PurchaseItem, today: LocalDate, quantity = item.step): PurchaseForm {
   // display_unit is always the stored unit, or kg for g and l for ml, so this converts.
-  const inDisplay = fromBase(item.step, item.display_unit, item) ?? item.step
+  const inDisplay = fromBase(quantity, item.display_unit, item) ?? quantity
   const unit = inDisplay < 1 ? item.unit : item.display_unit
   return {
-    amount: String(unit === item.unit ? item.step : inDisplay),
+    amount: String(unit === item.unit ? quantity : inDisplay),
     unit,
     expiresOn: item.shelf_life_days == null ? '' : addDays(today, item.shelf_life_days),
   }

@@ -3,6 +3,7 @@ import { Segmented } from '../components/Segmented.tsx'
 import { Sheet } from '../components/Sheet.tsx'
 import { useToast } from '../components/toastContext.ts'
 import { useReadyHousehold } from '../household/householdContext.ts'
+import { useClock } from '../lib/clock.ts'
 import { localDate } from '../lib/dates.ts'
 import { namePair } from '../lib/names.ts'
 import { undoEvents } from './actions.ts'
@@ -64,7 +65,7 @@ export function AddStockSheet({ onClose, initialQuery = '', startNew = false }: 
   )
 }
 
-function PickItem({
+export function PickItem({
   query,
   onQuery,
   onPick,
@@ -136,7 +137,7 @@ function PickItem({
   )
 }
 
-function NewItemForm({ query, onBack, onCreated }: { query: string; onBack: () => void; onCreated: (item: Item) => void }) {
+export function NewItemForm({ query, onBack, onCreated }: { query: string; onBack: () => void; onCreated: (item: Item) => void }) {
   const { addItem } = useStock()
   const prefill = namesFromQuery(query)
   const [nameTa, setNameTa] = useState(prefill.name_ta)
@@ -206,12 +207,23 @@ function NewItemForm({ query, onBack, onCreated }: { query: string; onBack: () =
   )
 }
 
+interface BoughtFormProps {
+  item: Item
+  onBack?: () => void
+  onSaved: () => void
+  /** Pre-fill this much (in the stored unit) instead of one step. */
+  quantity?: number
+  /** Also done when it's saved (a shopping line ticked off), and undone with it. */
+  also?: { done: () => void; undo: () => void }
+}
+
 /** How much was bought, and when to use it by. With `onBack`, shows the item with a "Change" button. */
-export function BoughtForm({ item, onBack, onSaved }: { item: Item; onBack?: () => void; onSaved: () => void }) {
+export function BoughtForm({ item, onBack, onSaved, quantity, also }: BoughtFormProps) {
   const { eventsByItem, record } = useStock()
   const pref = useReadyHousehold().me.script_pref
   const toast = useToast()
-  const [form, setForm] = useState<PurchaseForm>(() => purchaseDefaults(item, localDate(new Date())))
+  const clock = useClock()
+  const [form, setForm] = useState<PurchaseForm>(() => purchaseDefaults(item, localDate(clock()), quantity))
   const event = purchaseEvent(item, form)
   const [first, second] = namePair(item, pref)
 
@@ -224,7 +236,13 @@ export function BoughtForm({ item, onBack, onSaved }: { item: Item; onBack?: () 
         const before = eventsByItem.get(item.id) ?? []
         const added = record([event])
         const undo = undoEvents(item, before, added)
-        toast(`${first}: ${formatQuantity(event.quantity, item)} added`, { undo: () => void record(undo) })
+        also?.done()
+        toast(`${first}: ${formatQuantity(event.quantity, item)} added`, {
+          undo: () => {
+            record(undo)
+            also?.undo()
+          },
+        })
         onSaved()
       }}
     >

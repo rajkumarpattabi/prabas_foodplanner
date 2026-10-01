@@ -1,5 +1,5 @@
 import { useLiveQuery } from 'dexie-react-hooks'
-import { useCallback, useMemo, type ReactNode } from 'react'
+import { useCallback, useEffect, useMemo, useRef, type ReactNode } from 'react'
 import { addDays, localDate } from '../lib/dates.ts'
 import { useClock } from '../lib/clock.ts'
 import { useSync } from '../offline/syncContext.ts'
@@ -33,6 +33,11 @@ export function ShoppingProvider({ api, householdId, userId, children }: Props) 
   })
 
   const rows = useLiveQuery(() => db.shopping_items.where('household_id').equals(householdId).toArray(), [db, householdId])
+  // The latest rows, for actions called later (an undo toast) that must not see an old list.
+  const latest = useRef(rows)
+  useEffect(() => {
+    latest.current = rows
+  }, [rows])
 
   const insert = useCallback(
     (fields: Pick<ShoppingItem, 'item_id' | 'kind'> & Partial<ShoppingItem>): ShoppingItem => {
@@ -72,14 +77,14 @@ export function ShoppingProvider({ api, householdId, userId, children }: Props) 
   const addWant = useCallback(
     (itemId: string, quantity: number | null = null): ShoppingItem => {
       // Already on the list: one line per item, so just the amount changes.
-      const open = rows?.find((r) => r.item_id === itemId && r.kind === 'want' && !r.done_at)
+      const open = latest.current?.find((r) => r.item_id === itemId && r.kind === 'want' && !r.done_at)
       if (open) {
         if (quantity !== null) void update(open.id, { quantity })
         return { ...open, quantity: quantity ?? open.quantity }
       }
       return insert({ item_id: itemId, kind: 'want', quantity })
     },
-    [rows, insert, update],
+    [insert, update],
   )
 
   const setBought = useCallback(
