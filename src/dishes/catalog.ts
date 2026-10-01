@@ -29,11 +29,21 @@ export interface CatalogDish {
 
 export const DISH_COLUMNS = ['key', 'name_ta', 'name_en', 'type', 'meals', 'tags', 'sides', 'ingredients', 'aliases'] as const
 
-const list = (s: string) =>
+export const list = (s: string) =>
   s
     .split(',')
     .map((x) => x.trim())
     .filter(Boolean)
+
+/** `item_key:250,other:0.25?` → ingredients. Throws, saying where, on anything invalid. */
+export function parseCatalogIngredients(text: string, where: string): CatalogIngredient[] {
+  return list(text).map((entry) => {
+    const m = /^([a-z0-9_]+):([0-9.]+)(\?)?$/.exec(entry)
+    const quantity = m ? Number(m[2]) : NaN
+    if (!m || !(quantity > 0)) throw new Error(`${where}: ingredient "${entry}" should look like item_key:250`)
+    return { item: m[1], quantity, optional: m[3] === '?' }
+  })
+}
 
 /**
  * One dish per line, columns separated by "|", lists separated by ",".
@@ -63,12 +73,7 @@ export function parseDishCatalog(text: string): CatalogDish[] {
     if (!mealList.length) throw new Error(`${where}: at least one meal is needed`)
     for (const m of mealList) if (!MEALS.includes(m as Meal)) throw new Error(`${where}: unknown meal "${m}"`)
     for (const t of list(tags)) if (!DISH_TAGS.includes(t as DishTag)) throw new Error(`${where}: unknown tag "${t}"`)
-    const parsedIngredients = list(ingredients).map((entry) => {
-      const m = /^([a-z0-9_]+):([0-9.]+)(\?)?$/.exec(entry)
-      const quantity = m ? Number(m[2]) : NaN
-      if (!m || !(quantity > 0)) throw new Error(`${where}: ingredient "${entry}" should look like item_key:250`)
-      return { item: m[1], quantity, optional: m[3] === '?' }
-    })
+    const parsedIngredients = parseCatalogIngredients(ingredients, where)
     dishes.push({
       key,
       name_ta,
@@ -124,8 +129,10 @@ export function checkDishCatalog(dishes: readonly CatalogDish[], items: readonly
 
 const sqlText = (s: string) => `'${s.replace(/'/g, "''")}'`
 const sqlTextArray = (xs: readonly string[]) => `array[${xs.map(sqlText).join(', ')}]::text[]`
-const ingredientsJson = (d: CatalogDish) =>
-  JSON.stringify(d.ingredients.map((i) => (i.optional ? { item: i.item, quantity: i.quantity, optional: true } : { item: i.item, quantity: i.quantity })))
+/** Ingredients as the catalogue stores them: [{item, quantity, optional?}]. */
+export const catalogIngredientsJson = (list: readonly CatalogIngredient[]) =>
+  JSON.stringify(list.map((i) => (i.optional ? { item: i.item, quantity: i.quantity, optional: true } : { item: i.item, quantity: i.quantity })))
+const ingredientsJson = (d: CatalogDish) => catalogIngredientsJson(d.ingredients)
 
 /** Migration 0007: load the dish catalogue and seed households that already exist. */
 export function dishCatalogToSql(dishes: readonly CatalogDish[]): string {
@@ -181,20 +188,25 @@ const TYPE_TITLES: Record<DishType, string> = {
   prepared: 'Made ahead',
 }
 
+/** "500 g", "1.5 kg", "2 bunches", for the review docs. */
+export function catalogAmount(q: number, unit: string): string {
+  if (unit === 'g') return q >= 1000 ? `${q / 1000} kg` : `${q} g`
+  if (unit === 'ml') return q >= 1000 ? `${q / 1000} l` : `${q} ml`
+  return `${q} ${unit}${q === 1 ? '' : unit === 'bunch' ? 'es' : 's'}`
+}
+
+/** "Idli rice 2 kg", "Small onion 75 g (optional)". */
+export function catalogIngredientText(i: CatalogIngredient, itemsByKey: ReadonlyMap<string, Pick<CatalogItem, 'name_en' | 'unit'>>): string {
+  const item = itemsByKey.get(i.item)
+  return `${item?.name_en ?? i.item} ${catalogAmount(i.quantity, item?.unit ?? '')}${i.optional ? ' (optional)' : ''}`
+}
+
 /** The review table, grouped by type: names, meals, ingredients for five, and sides. */
 export function dishCatalogToMarkdown(dishes: readonly CatalogDish[], items: readonly CatalogItem[]): string {
   const cell = (s: string) => s.replace(/\|/g, '\\|')
   const itemsByKey = new Map(items.map((i) => [i.key, i]))
   const dishesByKey = new Map(dishes.map((d) => [d.key, d]))
-  const amount = (q: number, unit: string) => {
-    if (unit === 'g') return q >= 1000 ? `${q / 1000} kg` : `${q} g`
-    if (unit === 'ml') return q >= 1000 ? `${q / 1000} l` : `${q} ml`
-    return `${q} ${unit}${q === 1 ? '' : unit === 'bunch' ? 'es' : 's'}`
-  }
-  const ingredient = (i: CatalogIngredient) => {
-    const item = itemsByKey.get(i.item)
-    return `${item?.name_en ?? i.item} ${amount(i.quantity, item?.unit ?? '')}${i.optional ? ' (optional)' : ''}`
-  }
+  const ingredient = (i: CatalogIngredient) => catalogIngredientText(i, itemsByKey)
   const sections = DISH_TYPES.map((t) => {
     const rows = dishes.filter((d) => d.type === t)
     if (!rows.length) return ''

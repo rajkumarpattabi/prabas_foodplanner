@@ -1,0 +1,52 @@
+# PRABAS prepared items: what's made ahead (batter, koozh, dough, paste, podi), and
+# which starter dishes use them. After editing, run `npm run catalog` and commit.
+# dish_catalog.psv stays as it was first seeded; this file changes dishes on top of it.
+#
+# ---- Made ahead ------------------------------------------------------------------------
+# One per line. A key already in dish_catalog.psv (ragi_koozh) adds a prep plan to that
+# dish: leave its name, type, meals, tags and aliases empty. A new key is a new dish.
+# type: prepared (used by other dishes, never a meal on its own), or a normal type for
+#   something eaten as it is (pazhaya sadam, idli podi), which then uses itself below.
+# stages: key:hours[:flag...], in order. Keys: soak, grind, cook, ferment, knead, rest,
+#   roast. Hours: until the next stage can start. Flags: wait (runs by the clock, nothing
+#   to do), takes (this stage takes the ingredients from stock: exactly one stage),
+#   adjust (its time can change per batch, and the app learns the usual).
+# yield: what one batch makes, in unit (meals or glasses). keeps: days once ready.
+# keep_going: yes to prompt the next batch when this one is nearly finished.
+# ingredients: for ONE BATCH, item_key:quantity in the item's stored unit; ? = optional.
+#
+key|name_ta|name_en|type|meals|tags|stages|yield|unit|keeps|keep_going|ingredients|aliases
+idli_dosa_batter|இட்லி தோசை மாவு|Idli/dosa batter|prepared|||soak:5:takes,grind:0,ferment:10:wait:adjust|4|meals|3|yes|idli_arisi:2000,ulutham_paruppu:500,vendhayam:10|idli maavu,dosa maavu,idli batter,dosa batter,maavu
+paruppu_dosa_batter|அடை மாவு|Paruppu dosa batter|prepared|||soak:3:takes,grind:0|2|meals|2|no|puzhungal_arisi:400,thuvaram_paruppu:200,kadalai_paruppu:200,ulutham_paruppu:100,pasi_paruppu:100,vara_milagai:16,inji:30|adai maavu,adai batter,paruppu dosa maavu
+ragi_koozh||||||soak:9:takes,cook:1,ferment:24:wait:adjust|10|glasses|3|no|ragi_mavu:400,puzhungal_arisi:100|
+kambu_koozh||||||soak:8:takes,cook:1,ferment:12:wait:adjust|10|glasses|2|no|kambu:500|
+pazhaya_sadam|பழைய சாதம்|Pazhaya sadam|variety_rice|breakfast|curd|soak:10:takes|1|meals|1|no|puzhungal_arisi:400|pazhaya sadam,pazhaya soru,neeragaram,fermented rice,old rice
+soaked_chana|ஊறவைத்த கொண்டைக்கடலை|Soaked chana|prepared|||soak:8:takes|1|meals|2|no|vellai_kondakadalai:250|soaked chana,soaked channa,kondakadalai
+chapathi_maavu|சப்பாத்தி மாவு|Chapati dough|prepared|||knead:0:takes,rest:0.5:wait|2|meals|2|no|godhumai_mavu:1000,kadalai_ennai:20|chapati dough,chapathi maavu,atta dough
+puliyogare_paste|புளிக்காய்ச்சல்|Puliyogare paste|prepared|||cook:1:takes|6|meals|30|no|puli:300,nallennai:250,kadalai_paruppu:60,vara_milagai:30,vendhayam:15,vellam:60,ellu:20,karuveppilai:1|pulikaichal,puli kaichal,puliyogare paste,puliyodharai paste
+idli_podi|இட்லி பொடி|Idli podi|chutney|breakfast,dinner||roast:1:takes|10|meals|60|no|ulutham_paruppu:100,kadalai_paruppu:50,vara_milagai:15,ellu:15|idli podi,milagai podi,gunpowder,paruppu podi
+thakkali_thokku|தக்காளித் தொக்கு|Tomato thokku|chutney|breakfast,dinner||cook:1:takes|6|meals|14|no|thakkali:1000,nallennai:150,milagai_thool:25,vendhayam:5,poondu:30|thakkali thokku,tomato thokku,tomato pickle
+
+# ---- Dishes that use them --------------------------------------------------------------
+# dish: a key from dish_catalog.psv or from the list above.
+# uses: prepared_key:quantity[:flag], in the item's unit. Flags: optional, aged (better
+#   with older batter: uthappam, kuzhi paniyaram). Something eaten as it is uses itself.
+# ingredients: the dish's own ingredients from now on, FOR FIVE, without what's in the
+#   prepared item (dosa keeps its oil; the rice and urad are in the batter). Starter
+#   dishes someone has edited are left alone.
+# add_sides: sides to add after its current ones.
+#
+dish|uses|ingredients|add_sides
+idli|idli_dosa_batter:1||idli_podi
+dosai|idli_dosa_batter:1|kadalai_ennai:100|idli_podi,thakkali_thokku
+uthappam|idli_dosa_batter:1:aged|periya_vengayam:150,thakkali:150,pachai_milagai:15,kadalai_ennai:100|
+kuzhi_paniyaram|idli_dosa_batter:1:aged|chinna_vengayam:100,pachai_milagai:15,kadalai_ennai:80|
+adai|paruppu_dosa_batter:1|chinna_vengayam:100,kadalai_ennai:100,karuveppilai:0.25|
+ragi_koozh|ragi_koozh:5|mor:1000,chinna_vengayam:75?|
+kambu_koozh|kambu_koozh:5|mor:1000,chinna_vengayam:75?|
+pazhaya_sadam|pazhaya_sadam:1|mor:500,chinna_vengayam:75,pachai_milagai:10?|
+chapathi|chapathi_maavu:1|kadalai_ennai:40|thakkali_thokku
+puli_sadam|puliyogare_paste:1|pacharisi:400,verkadalai:50,nallennai:30|
+chana_masala|soaked_chana:1|periya_vengayam:200,thakkali:250,inji:15,poondu:15,garam_masala:10,kadalai_ennai:40|
+idli_podi|idli_podi:1|nallennai:25|
+thakkali_thokku|thakkali_thokku:1||
