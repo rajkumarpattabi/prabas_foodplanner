@@ -123,4 +123,11 @@ Colourful but calm. Colour always carries meaning. Never rely on colour alone; p
       Shop nudges with one-tap add and a dish idea, Plan summary card and Food balance screen. No migration.
       Card and screen seen on the phones; gaps, swaps and nudges tested in code, to be seen once two weeks of
       cooking are logged.)
-- [ ] Batch 10: Bill scanning
+- [x] Batch 10: Bill scanning (done 2026-10-02: no API key, so bills are read on the phone with
+      Tesseract.js (English and Tamil, lazy-loaded, engine cached for offline), or pasted from Google Lens
+      or Live Text; photo clean-up with a local threshold; a parser for English, Tamil and mixed bills that
+      sets non-groceries aside; matching by shop name, then household names, then exact names and aliases,
+      fuzzy matches, closest guesses; ambiguous words always ask; quantity estimated from past prices;
+      review in four sections (needs an item, check these, matched, not groceries); one confirm with prices
+      and the bill id on each purchase, names remembered, one undo; Scan a bill on Stock and Shop; bills in
+      backups. Migration 0016 applied. Tested on both phones.)
