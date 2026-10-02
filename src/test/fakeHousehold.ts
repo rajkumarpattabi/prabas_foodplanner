@@ -662,6 +662,8 @@ export function fakeHouseholdApi({ withHousehold = false, offline = false }: Opt
         batches: mine(batches) as unknown as Row[],
         batch_events: mine(batchEvents) as unknown as Row[],
         shopping_items: mine(shopping) as unknown as Row[],
+        bills: mine(bills) as unknown as Row[],
+        bill_aliases: mine(billAliases) as unknown as Row[],
       }
     }),
     restore: vi.fn(async (tables: Record<string, Row[]>) => {
@@ -744,6 +746,17 @@ export function fakeHouseholdApi({ withHousehold = false, offline = false }: Opt
             .map((s) => ({ ...s, household_id: hid })),
         ]
       }
+      // A backup made before Batch 10 has no bills. A bill name comes back only for an item that's here.
+      if ('bills' in tables) {
+        const hid = household.id
+        bills = [...bills.filter((b) => b.household_id !== hid), ...(tables.bills as unknown as Bill[]).map((b) => ({ ...b, household_id: hid }))]
+        billAliases = [
+          ...billAliases.filter((a) => a.household_id !== hid),
+          ...((tables.bill_aliases ?? []) as unknown as BillAliasRow[])
+            .filter((a) => items.some((i) => i.id === a.item_id && i.household_id === hid))
+            .map((a) => ({ ...a, household_id: hid })),
+        ]
+      }
     }),
   } satisfies BackupApi
 
@@ -817,6 +830,13 @@ export function fakeHouseholdApi({ withHousehold = false, offline = false }: Opt
         const row: BillAliasRow = { id: `alias-${billAliases.length + 1}`, household_id: household!.id, created_by: 'user-2', created_at: T0, updated_by: 'user-2', updated_at: T0, ...a }
         billAliases = [...billAliases, row]
         if (!net.offline) tellBill({ table: 'bill_aliases', row })
+        return row
+      },
+      /** The other phone (user-2) scanned a bill. */
+      addBill(b: Pick<Bill, 'vendor' | 'bill_date' | 'total' | 'lines'>) {
+        const row: Bill = { id: `bill-${bills.length + 1}`, household_id: household!.id, created_by: 'user-2', created_at: T0, ...b }
+        bills = [...bills, row]
+        if (!net.offline) tellBill({ table: 'bills', row })
         return row
       },
       reminderSettings: (userId = me) => settings.get(userId),

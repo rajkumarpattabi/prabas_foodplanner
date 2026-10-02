@@ -126,4 +126,23 @@ describe('scanning a bill', () => {
     expect((await screen.findByRole('alert')).textContent).toBe('Couldn’t read this photo. Try again in good light, or paste the text.')
     expect(screen.getByLabelText('Or paste the bill’s text')).toBeTruthy()
   })
+
+  test('from Stock: Scan a bill, and back again', async () => {
+    renderApp({ path: '/stock', now: NOW })
+    fireEvent.click(await screen.findByRole('link', { name: 'Scan a bill' }))
+    expect(await screen.findByRole('heading', { name: 'Scan a bill' })).toBeTruthy()
+    fireEvent.click(screen.getByRole('link', { name: 'Back' }))
+    expect(await screen.findByRole('heading', { name: 'Stock' })).toBeTruthy()
+  })
+
+  test('from Shop: the bill goes into stock, and you land back on Shop', async () => {
+    const h = fakeHouseholdApi({ withHousehold: true })
+    renderApp({ path: '/shop', household: h, now: NOW })
+    fireEvent.click(await screen.findByRole('link', { name: 'Scan a bill' }))
+    fireEvent.change(await screen.findByLabelText('Paste the bill’s text'), { target: { value: 'Coconut 2 60' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Read this text' }))
+    fireEvent.click(await screen.findByRole('button', { name: 'Add 1 item to stock' }))
+    expect(await screen.findByRole('heading', { name: 'Shop' })).toBeTruthy()
+    await waitFor(() => expect(stockOf(h, COCONUT)).toBe(2))
+  })
 })

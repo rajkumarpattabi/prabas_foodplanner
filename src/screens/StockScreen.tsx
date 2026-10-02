@@ -1,3 +1,4 @@
+import { Link } from 'react-router'
 import { useMemo, useState, type ReactNode } from 'react'
 import { Screen } from '../components/Screen.tsx'
 import { useReadyHousehold } from '../household/householdContext.ts'
@@ -130,7 +131,13 @@ export function StockScreen() {
 
       {/* Room to scroll the last row clear of the button. */}
       <div className="h-16" />
-      <div className="pointer-events-none fixed inset-x-0 bottom-[calc(4.5rem+env(safe-area-inset-bottom))] z-40 mx-auto flex max-w-xl justify-end px-4">
+      <div className="pointer-events-none fixed inset-x-0 bottom-[calc(4.5rem+env(safe-area-inset-bottom))] z-40 mx-auto flex max-w-xl justify-end gap-2 px-4">
+        <Link
+          to="/scan"
+          className="pointer-events-auto flex min-h-12 items-center rounded-full border border-leaf bg-surface px-5 font-semibold text-leaf-strong shadow-lg"
+        >
+          Scan a bill
+        </Link>
         <button
           type="button"
           onClick={() => setAdding({ query: '', startNew: false })}

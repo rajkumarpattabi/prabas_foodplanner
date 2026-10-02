@@ -324,6 +324,29 @@ describe('file backup', () => {
     await waitFor(async () => expect((await sync.db.shopping_items.toArray())[0]?.done_at).toBeNull())
   })
 
+  test('bills round trip: bills and the names they taught come back, on the server and on this phone', async () => {
+    const household = fakeHouseholdApi({ withHousehold: true })
+    household.server.addBill({ vendor: 'Murugan Stores', bill_date: '2026-10-02', total: 420, lines: 4 })
+    household.server.addBillAlias({ vendor: '', raw: 'tenkai', item_id: 'hh-1:coconut' })
+    const { sync } = renderApp({ path: '/settings', household })
+    await waitFor(async () => expect(await sync.db.bill_aliases.count()).toBe(1))
+    const exported = await exportJson()
+    expect([exported.tables.bills, exported.tables.bill_aliases].map((t) => t.length)).toEqual([1, 1])
+
+    // After the backup: another bill, and the name pointed elsewhere.
+    household.server.addBill({ vendor: 'Anbu', bill_date: '2026-10-03', total: 90, lines: 2 })
+    household.server.addBillAlias({ vendor: 'anpu', raw: 'peans', item_id: OKRA })
+    await waitFor(async () => expect(await sync.db.bills.count()).toBe(2))
+
+    await importFile(JSON.stringify(exported))
+    fireEvent.click(await screen.findByRole('button', { name: 'Replace data' }))
+    expect(await screen.findByText('Backup restored')).toBeTruthy()
+
+    expect(household.server.bills()).toMatchObject([{ vendor: 'Murugan Stores', total: 420 }])
+    expect(household.server.billAliases()).toMatchObject([{ raw: 'tenkai', item_id: 'hh-1:coconut' }])
+    await waitFor(async () => expect([await sync.db.bills.count(), await sync.db.bill_aliases.count()]).toEqual([1, 1]))
+  })
+
   test('cancel leaves everything as it was', async () => {
     const household = fakeHouseholdApi({ withHousehold: true })
     renderApp({ path: '/settings', household })

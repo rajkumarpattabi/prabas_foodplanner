@@ -5,6 +5,7 @@ import { useSync } from '../offline/syncContext.ts'
 import { useCalendar } from '../calendar/calendarContext.ts'
 import { useBatches } from '../prepared/batchContext.ts'
 import { useShopping } from '../shop/shoppingContext.ts'
+import { useBills } from '../bills/billContext.ts'
 import { useDishes } from '../dishes/dishContext.ts'
 import { useMeals } from '../plan/mealContext.ts'
 import { useStock } from '../stock/stockContext.ts'
@@ -23,6 +24,7 @@ export function useBackup() {
   const { reload: reloadCalendar } = useCalendar()
   const { reload: reloadBatches } = useBatches()
   const { reload: reloadShopping } = useShopping()
+  const { reload: reloadBills } = useBills()
   const isBackupOwner = household.backup_owner_id === me.user_id
 
   const makeBackup = useCallback(
@@ -38,13 +40,13 @@ export function useBackup() {
         await db.outbox.where('userId').equals(me.user_id).delete()
         await api.restore(backup.tables)
         // Live updates don't carry a restore's deletions, so read everything again.
-        await Promise.all([reload(), reloadStock(), reloadDishes(), reloadMeals(), reloadCalendar(), reloadBatches(), reloadShopping()])
+        await Promise.all([reload(), reloadStock(), reloadDishes(), reloadMeals(), reloadCalendar(), reloadBatches(), reloadShopping(), reloadBills()])
         return null
       } catch (e) {
         return e instanceof HouseholdError ? e.message : 'Something went wrong. Try again.'
       }
     },
-    [api, db, me.user_id, reload, reloadStock, reloadDishes, reloadMeals, reloadCalendar, reloadBatches, reloadShopping],
+    [api, db, me.user_id, reload, reloadStock, reloadDishes, reloadMeals, reloadCalendar, reloadBatches, reloadShopping, reloadBills],
   )
 
   return { makeBackup, restore, isBackupOwner, householdId: household.id }

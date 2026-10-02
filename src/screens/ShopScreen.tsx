@@ -1,3 +1,4 @@
+import { Link } from 'react-router'
 import { useState } from 'react'
 import { Screen } from '../components/Screen.tsx'
 import { Sheet } from '../components/Sheet.tsx'
@@ -86,6 +87,9 @@ export function ShopScreen() {
           <button type="button" onClick={() => setAdding(true)} className="mt-6 min-h-12 w-full rounded-xl border border-dashed border-line font-medium text-leaf-strong">
             + Add item
           </button>
+          <Link to="/scan?from=shop" className="mt-2 flex min-h-12 w-full items-center justify-center rounded-xl border border-leaf font-medium text-leaf-strong">
+            Scan a bill
+          </Link>
         </>
       )}
       {buying && <BuySheet line={buying} onClose={() => setBuying(null)} />}

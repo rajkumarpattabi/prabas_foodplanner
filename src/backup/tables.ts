@@ -25,6 +25,8 @@ export const BACKED_UP_TABLES: readonly BackedUpTable[] = [
   { name: 'batches', scope: 'household' },
   { name: 'batch_events', scope: 'household' },
   { name: 'shopping_items', scope: 'household' },
+  { name: 'bills', scope: 'household' },
+  { name: 'bill_aliases', scope: 'household' },
 ]
 
 /**
