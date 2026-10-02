@@ -7,6 +7,7 @@ import { BalanceScreen } from './screens/BalanceScreen.tsx'
 import { CalendarScreen } from './screens/CalendarScreen.tsx'
 import { DishesScreen } from './screens/DishesScreen.tsx'
 import { PlanScreen } from './screens/PlanScreen.tsx'
+import { ScanScreen } from './screens/ScanScreen.tsx'
 import { SettingsScreen } from './screens/SettingsScreen.tsx'
 import { ShopScreen } from './screens/ShopScreen.tsx'
 import { StockScreen } from './screens/StockScreen.tsx'
@@ -27,6 +28,7 @@ export default function App() {
           <Route path="/settings" element={<SettingsScreen />} />
           <Route path="/calendar" element={<CalendarScreen />} />
           <Route path="/balance" element={<BalanceScreen />} />
+          <Route path="/scan" element={<ScanScreen />} />
           <Route path="*" element={<Navigate to="/plan" replace />} />
         </Routes>
       </main>

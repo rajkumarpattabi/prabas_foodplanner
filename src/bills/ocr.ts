@@ -4,11 +4,15 @@
 // cached; the photo itself never leaves the phone.
 
 import { createContext, useContext } from 'react'
+import { prepareBillImage } from './image.ts'
 
 export interface Ocr {
-  /** The text in the image, line by line. `onProgress` gets 0 to 1. */
-  read(image: HTMLCanvasElement | Blob, onProgress?: (fraction: number, stage: string) => void): Promise<string>
+  /** The text in a photo of a bill, line by line. `onProgress` gets 0 to 1. */
+  read(photo: Blob, onProgress?: (fraction: number, stage: OcrStage) => void): Promise<string>
 }
+
+/** Getting ready happens once (the engine and languages download), then reading. */
+export type OcrStage = 'loading' | 'reading'
 
 /** Languages read: Tamil script and English, together (bills mix them). */
 export const OCR_LANGUAGES = ['eng', 'tam']
@@ -18,11 +22,11 @@ type Worker = import('tesseract.js').Worker
 /** The real thing. One engine, made on first use and kept for the next bill. */
 export function tesseractOcr(): Ocr {
   let worker: Promise<Worker> | null = null
-  let report: ((fraction: number, stage: string) => void) | undefined
+  let report: ((fraction: number, stage: OcrStage) => void) | undefined
   const engine = () => {
     worker ??= import('tesseract.js').then(async ({ createWorker, PSM }) => {
       const w = await createWorker(OCR_LANGUAGES, 1, {
-        logger: (m: { status: string; progress: number }) => report?.(m.progress, m.status),
+        logger: (m: { status: string; progress: number }) => report?.(m.progress, m.status === 'recognizing text' ? 'reading' : 'loading'),
       })
       // A bill is one column of short lines: read it as a single block, keep spacing.
       await w.setParameters({ tessedit_pageseg_mode: PSM.SINGLE_BLOCK, preserve_interword_spaces: '1' })
@@ -31,10 +35,10 @@ export function tesseractOcr(): Ocr {
     return worker
   }
   return {
-    async read(image, onProgress) {
+    async read(photo, onProgress) {
       report = onProgress
       try {
-        const w = await engine()
+        const [w, image] = await Promise.all([engine(), prepareBillImage(photo)])
         const { data } = await w.recognize(image)
         return data.text
       } catch (e) {
@@ -48,5 +52,6 @@ export function tesseractOcr(): Ocr {
   }
 }
 
+/** The app's reader; null where there's none (the photo buttons are hidden). */
 export const OcrContext = createContext<Ocr | null>(null)
 export const useOcr = () => useContext(OcrContext)

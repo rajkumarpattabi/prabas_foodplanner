@@ -11,6 +11,7 @@ import { fakeHouseholdApi } from './fakeHousehold.ts'
 import type { DriveDeps } from '../backup/drive/driveBackup.ts'
 import type { PushDeps } from '../reminders/push.ts'
 import { fakePush } from './fakePush.ts'
+import { OcrContext, type Ocr } from '../bills/ocr.ts'
 
 interface Options {
   path?: string
@@ -26,6 +27,8 @@ interface Options {
   now?: Date
   /** A clock the test moves along (batches over several days). Wins over `now`. */
   clock?: () => Date
+  /** Reading bill photos (none unless given). */
+  ocr?: Ocr | null
 }
 
 let dbCount = 0
@@ -40,6 +43,7 @@ export function renderApp({
   push = fakePush().deps,
   now,
   clock: movable,
+  ocr = null,
 }: Options = {}) {
   const clock = movable ?? (now ? () => new Date(now) : () => new Date())
   const result = render(
@@ -47,7 +51,9 @@ export function renderApp({
       <ClockContext.Provider value={clock}>
       <ThemeProvider>
         <ToastProvider>
+          <OcrContext.Provider value={ocr}>
           <Root auth={auth} householdApi={household} stockApi={household.stockApi} dishApi={household.dishApi} mealApi={household.mealApi} calendarApi={household.calendarApi} batchApi={household.batchApi} shoppingApi={household.shoppingApi} reminderApi={household.reminderApi} billApi={household.billApi} backupApi={household.backupApi} sync={sync} drive={drive} push={push} />
+          </OcrContext.Provider>
         </ToastProvider>
       </ThemeProvider>
       </ClockContext.Provider>

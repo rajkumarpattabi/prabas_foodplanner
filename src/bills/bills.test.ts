@@ -1,9 +1,10 @@
 import { describe, expect, test } from 'vitest'
-import type { Item } from '../stock/types.ts'
+import type { Item, StockEvent } from '../stock/types.ts'
 import { perUnitText, pricePerUnit, quantityFromPrice } from './estimate.ts'
 import { matchLine, normaliseName, normaliseVendor, type BillAlias } from './match.ts'
 import { parseBill, parseLine } from './parse.ts'
-import { aliasesToSave, reviewLine, reviewLines, type ReviewContext } from './review.ts'
+import { aliasesToSave, reviewLine, reviewLines, withChoices, type Choice, type ReviewContext } from './review.ts'
+import { billTotal, reviewContext } from './context.ts'
 
 const item = (id: string, name_en: string, name_ta: string, extra: Partial<Item> = {}): Item => ({
   id,
@@ -218,5 +219,69 @@ describe('the review', () => {
       ['Beans', 'broad', 'vendor'],
       ['Thengai', 'coconut', 'vendor'],
     ])
+  })
+})
+
+describe('choices on the review screen', () => {
+  const c: ReviewContext = { items, aliases: [], vendor: 'Murugan Vegetables', purchases: new Map(), boughtToday: new Set(['coconut']) }
+  const lines = reviewLines(parseBill('Murugan Vegetables\nBeans 30\nCorian 2 20\nCoconut 2 60'), c)
+
+  test('a picked item is ticked and stays where it was; ticking a guess accepts it', () => {
+    const chosen = withChoices(
+      lines,
+      new Map<string, Choice>([
+        ['l0', { item: I.broad }],
+        ['l1', { include: true }],
+        ['l2', { include: true }],
+      ]),
+      c,
+    )
+    const [beans, guess, coconut] = ['l0', 'l1', 'l2'].map((id) => chosen.find((l) => l.id === id)!)
+    expect([beans.line.name, beans.section, beans.item?.id, beans.include, beans.confirmed]).toEqual(['Beans', 'map', 'broad', true, true])
+    // A guess, accepted: remembered.
+    expect([guess.line.name, guess.section, guess.include, guess.confirmed]).toEqual(['Corian', 'check', true, true])
+    // Bought today already, ticked anyway: a sure match, so nothing new to remember.
+    expect([coconut.line.name, coconut.include, coconut.confirmed]).toEqual(['Coconut', true, false])
+  })
+
+  test('a line with no item cannot be ticked', () => {
+    expect(withChoices(lines, new Map([['l0', { include: true }]]), c).find((l) => l.id === 'l0')!.include).toBe(false)
+  })
+})
+
+describe('what the review needs from stock', () => {
+  const ev = (id: string, item_id: string, quantity: number, occurred_at: string, extra: Partial<StockEvent> = {}): StockEvent => ({
+    id,
+    household_id: 'hh',
+    item_id,
+    kind: 'delta',
+    quantity,
+    reason: 'bought',
+    batch_id: null,
+    expires_on: null,
+    form: 'whole',
+    note: null,
+    occurred_at,
+    created_by: null,
+    created_at: occurred_at,
+    ...extra,
+  })
+
+  test('past prices, and what was bought today and not undone', () => {
+    const events = new Map([
+      ['brinjal', [ev('b1', 'brinjal', 1000, '2026-09-20T05:00:00Z', { price: 50 }), ev('b2', 'brinjal', 500, '2026-10-02T03:00:00Z')]],
+      // Bought today on Shop, then undone.
+      ['tomato', [ev('t1', 'tomato', 1000, '2026-10-02T03:00:00Z', { price: 40 }), ev('t2', 'tomato', -1000, '2026-10-02T03:01:00Z', { reason: 'correction', batch_id: 't1', note: 'undo' })]],
+    ])
+    const c = reviewContext({ items, eventsByItem: events, aliases: [], vendor: '', today: '2026-10-02' })
+    expect(c.purchases.get('brinjal')).toEqual([{ quantity: 1000, price: 50, occurred_at: '2026-09-20T05:00:00Z' }])
+    expect(c.purchases.has('tomato')).toBe(false)
+    expect([...c.boughtToday]).toEqual(['brinjal'])
+  })
+
+  test("the bill's total: the last total line, not the sub total", () => {
+    expect(billTotal(parseBill('Tomato 40\nSub total 40\nTotal Rs 1,040.50').lines)).toBe(1040.5)
+    expect(billTotal(parseBill('தக்காளி 40\nமொத்தம் 40').lines)).toBe(40)
+    expect(billTotal(parseBill('Tomato 40').lines)).toBeNull()
   })
 })

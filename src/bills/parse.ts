@@ -62,10 +62,13 @@ const toNumber = (s: string): number => {
 
 const hasLetters = (s: string) => /[a-zA-Z஀-௿]/.test(s)
 
-/** One line of a bill, or null for a blank one. */
-export function parseLine(input: string): BillLine | null {
+/**
+ * One line of a bill, or null for a blank one. `asItem` reads it as groceries even if it
+ * looks like a total or a bag (set aside by mistake, and put back on the review screen).
+ */
+export function parseLine(input: string, { asItem = false } = {}): BillLine | null {
   // Zero-width joiners (OCR leaves them after Tamil words) would break matching, and a
-  // lone Tamil numeral is OCR reading a speck: bills use 0\u20139.
+  // lone Tamil numeral is OCR reading a speck: bills use the digits 0 to 9.
   const raw = input
     .replace(/[\u200b-\u200d\ufeff]/g, '')
     .replace(/(^|\s)[\u0be6-\u0bef](?=\s|$)/g, ' ')
@@ -77,7 +80,7 @@ export function parseLine(input: string): BillLine | null {
   // A leading serial number: "1.", "2)", "3 -".
   s = s.replace(/^\s*\d{1,2}\s*[.)\-:]\s+/, '')
 
-  if (!hasLetters(s) || OTHER.test(s) || /\d{1,2}[/-]\d{1,2}[/-]\d{2,4}/.test(s) || /\d{10}/.test(s)) {
+  if (!hasLetters(s) || (!asItem && OTHER.test(s)) || /\d{1,2}[/-]\d{1,2}[/-]\d{2,4}/.test(s) || /\d{10}/.test(s)) {
     return { raw, name: s.trim(), quantity: null, unit: null, price: null, other: true }
   }
 
@@ -143,7 +146,7 @@ export function parseBill(text: string): ParsedBill {
   }
   const lines = rows
     .slice(start)
-    .map(parseLine)
+    .map((r) => parseLine(r))
     .filter((l): l is BillLine => l !== null)
   // Before the first line with a price: the shop's address and the like, not items.
   const firstPriced = lines.findIndex((l) => !l.other && l.price !== null)

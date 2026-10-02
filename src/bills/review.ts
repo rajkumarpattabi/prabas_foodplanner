@@ -93,6 +93,33 @@ export function reviewLines(bill: ParsedBill, ctx: ReviewContext): ReviewLine[] 
 export const sortLines = (lines: readonly ReviewLine[]) =>
   [...lines].sort((a, b) => SECTION_ORDER.indexOf(a.section) - SECTION_ORDER.indexOf(b.section) || Number(a.id.slice(1)) - Number(b.id.slice(1)))
 
+/** What was done to a line on the review screen. */
+export interface Choice {
+  /** Picked by hand (from the guesses or a search). */
+  item?: Item
+  /** Ticked or unticked. */
+  include?: boolean
+}
+
+/**
+ * The lines with what was chosen applied. A line stays in the section it started in, so
+ * nothing jumps about while you work down the list. A picked item is ticked; ticking a
+ * line that was a guess or a misread accepts it, and it's remembered for next time.
+ */
+export function withChoices(lines: readonly ReviewLine[], choices: ReadonlyMap<string, Choice>, ctx: ReviewContext): ReviewLine[] {
+  return lines.map((l) => {
+    const c = choices.get(l.id)
+    if (!c) return l
+    let next = l
+    if (c.item) next = { ...reviewLine(l.id, l.line, l.match, ctx, c.item), section: l.section, include: true }
+    if (c.include !== undefined) {
+      const include = c.include && next.item !== null
+      next = { ...next, include, confirmed: next.confirmed || (include && l.match.confidence === 'check') }
+    }
+    return next
+  })
+}
+
 /**
  * The mappings to remember: every line chosen or accepted by hand, for this shop and
  * for the household. Ambiguous words are remembered for this shop only.
