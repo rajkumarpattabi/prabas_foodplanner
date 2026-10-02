@@ -76,6 +76,10 @@ export interface StockEvent {
   note: string | null
   /** When it happened on the phone (kept for changes made offline). */
   occurred_at: string
+  /** Rupees paid, for a purchase from a bill (for "Brinjal 40": the usual price per kg). */
+  price?: number | null
+  /** The bill it came from. */
+  bill_id?: string | null
   created_by: string | null
   created_at: string
 }

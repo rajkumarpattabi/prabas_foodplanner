@@ -17,6 +17,8 @@ import { ShoppingError, type ShoppingApi } from '../shop/api.ts'
 import type { ShoppingItem } from '../shop/types.ts'
 import { ReminderError, type ReminderApi } from '../reminders/api.ts'
 import type { Reminder, ReminderSettings } from '../reminders/types.ts'
+import { BillError, type BillApi } from '../bills/api.ts'
+import type { Bill, BillAliasRow } from '../bills/types.ts'
 import type { Leftover, MealRecord } from '../plan/types.ts'
 import { StockError, type RemoteChange, type StockApi } from '../stock/api.ts'
 import type { Item, StockEvent } from '../stock/types.ts'
@@ -176,6 +178,10 @@ export function fakeHouseholdApi({ withHousehold = false, offline = false }: Opt
   const settings = new Map<string, ReminderSettings>()
   const reminderListeners = new Set<(change: TableChange) => void>()
   const tellReminder = (change: TableChange) => reminderListeners.forEach((l) => l(structuredClone(change)))
+  let bills: Bill[] = []
+  let billAliases: BillAliasRow[] = []
+  const billListeners = new Set<(change: TableChange) => void>()
+  const tellBill = (change: TableChange) => billListeners.forEach((l) => l(structuredClone(change)))
   const seed = (hid: string) => {
     items = starterItems(hid)
     dishes = starterDishes(hid)
@@ -441,6 +447,65 @@ export function fakeHouseholdApi({ withHousehold = false, offline = false }: Opt
     return { status: 'ok' }
   }
 
+  /** Bills and bill names, with the same rules as the database. */
+  const billApi = {
+    load: vi.fn(async (householdId: string) => {
+      if (net.offline) throw new BillError('offline')
+      return structuredClone({ bills: bills.filter((b) => b.household_id === householdId), bill_aliases: billAliases.filter((a) => a.household_id === householdId) })
+    }),
+    subscribe: vi.fn((_householdId: string, onChange: (change: TableChange) => void) => {
+      billListeners.add(onChange)
+      return () => void billListeners.delete(onChange)
+    }),
+  } satisfies BillApi
+
+  const executeBill = (op: OutboxOp): OpResult => {
+    const now = new Date().toISOString()
+    const table = op.table as 'bills' | 'bill_aliases'
+    if (op.kind === 'insert') {
+      const row = op.row as Record<string, unknown> & { id: string; household_id: string; created_by: string }
+      if (row.household_id !== household?.id || row.created_by !== me) return { status: 'reject', message: 'row-level security' }
+      if (table === 'bills') {
+        if (bills.some((b) => b.id === row.id)) return { status: 'ok' }
+        const bill = { ...(row as unknown as Bill), created_at: now }
+        bills = [...bills, bill]
+        tellBill({ table, row: bill })
+        return { status: 'ok' }
+      }
+      const a = row as unknown as BillAliasRow
+      if (billAliases.some((x) => x.id === a.id)) return { status: 'ok' }
+      if (!items.some((i) => i.id === a.item_id && i.household_id === a.household_id)) return { status: 'reject', message: 'foreign key' }
+      if (billAliases.some((x) => x.household_id === a.household_id && x.vendor === a.vendor && x.raw === a.raw)) return { status: 'reject', message: 'duplicate key' }
+      const alias = { ...a, created_at: now, updated_at: now }
+      billAliases = [...billAliases, alias]
+      tellBill({ table, row: alias })
+      return { status: 'ok' }
+    }
+    if (op.kind === 'delete') {
+      if (table === 'bills') {
+        const gone = bills.find((b) => b.id === op.match.id && b.household_id === household?.id)
+        if (gone) {
+          bills = bills.filter((b) => b.id !== gone.id)
+          tellBill({ table, deletedId: gone.id })
+        }
+      } else {
+        const gone = billAliases.find((a) => a.id === op.match.id && a.household_id === household?.id)
+        if (gone) {
+          billAliases = billAliases.filter((a) => a.id !== gone.id)
+          tellBill({ table, deletedId: gone.id })
+        }
+      }
+      return { status: 'ok' }
+    }
+    if (table === 'bills') return { status: 'reject', message: 'permission denied' }
+    const current = billAliases.find((a) => a.id === op.match.id && a.household_id === household?.id)
+    if (!current) return { status: 'ok' }
+    const next = { ...current, ...(op.patch as Partial<BillAliasRow>), updated_by: me, updated_at: now }
+    billAliases = billAliases.map((a) => (a.id === next.id ? next : a))
+    tellBill({ table, row: next })
+    return { status: 'ok' }
+  }
+
   const executeCalendar = (op: OutboxOp): OpResult => {
     const valid = (d: Partial<CalendarDay>) => !d.end_date || (d.type === 'puratasi' && d.end_date >= (d.date ?? ''))
     if (op.kind === 'insert') {
@@ -560,6 +625,7 @@ export function fakeHouseholdApi({ withHousehold = false, offline = false }: Opt
     if (op.table === 'batches' || op.table === 'batch_events') return executeBatch(op)
     if (op.table === 'shopping_items') return executeShopping(op)
     if (op.table === 'reminders' || op.table === 'reminder_settings') return executeReminder(op)
+    if (op.table === 'bills' || op.table === 'bill_aliases') return executeBill(op)
     if (op.kind !== 'update') return { status: 'reject', message: 'not supported in the fake' }
     const stamp = { updated_by: me, updated_at: new Date().toISOString() }
     if (op.table === 'items') {
@@ -691,6 +757,7 @@ export function fakeHouseholdApi({ withHousehold = false, offline = false }: Opt
     batchApi,
     shoppingApi,
     reminderApi,
+    billApi,
     execute,
     /** Read the "server" side, to check what was actually saved. */
     server: {
@@ -743,6 +810,15 @@ export function fakeHouseholdApi({ withHousehold = false, offline = false }: Opt
       },
       shopping: () => shopping,
       reminders: () => reminders,
+      bills: () => bills,
+      billAliases: () => billAliases,
+      /** The other phone (user-2) mapped a bill name before. */
+      addBillAlias(a: Pick<BillAliasRow, 'vendor' | 'raw' | 'item_id'>) {
+        const row: BillAliasRow = { id: `alias-${billAliases.length + 1}`, household_id: household!.id, created_by: 'user-2', created_at: T0, updated_by: 'user-2', updated_at: T0, ...a }
+        billAliases = [...billAliases, row]
+        if (!net.offline) tellBill({ table: 'bill_aliases', row })
+        return row
+      },
       reminderSettings: (userId = me) => settings.get(userId),
       /** The other phone (user-2) adds to the list, or ticks a line off; this phone hears about it live. */
       otherPhoneShops(row: Pick<ShoppingItem, 'item_id'> & Partial<ShoppingItem>) {

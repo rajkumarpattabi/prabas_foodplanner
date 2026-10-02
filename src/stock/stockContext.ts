@@ -29,7 +29,7 @@ export type ItemPatch = Partial<
 
 /** A new stock event: what happened, plus any detail beyond the defaults (whole, now). */
 export type NewStockEvent = Pick<StockEvent, 'item_id' | 'kind' | 'quantity'> &
-  Partial<Pick<StockEvent, 'reason' | 'batch_id' | 'expires_on' | 'form' | 'note' | 'occurred_at'>>
+  Partial<Pick<StockEvent, 'reason' | 'batch_id' | 'expires_on' | 'form' | 'note' | 'occurred_at' | 'price' | 'bill_id'>>
 
 export interface StockState {
   status: StockStatus

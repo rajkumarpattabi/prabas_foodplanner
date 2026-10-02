@@ -30,6 +30,8 @@ import { supabaseShoppingApi, type ShoppingApi } from './shop/api.ts'
 import { ShoppingProvider } from './shop/ShoppingProvider.tsx'
 import { supabaseReminderApi, type ReminderApi } from './reminders/api.ts'
 import { ReminderProvider } from './reminders/ReminderProvider.tsx'
+import { supabaseBillApi, type BillApi } from './bills/api.ts'
+import { BillProvider } from './bills/BillProvider.tsx'
 import { browserPush, PushDepsContext, type PushDeps } from './reminders/push.ts'
 import { supabaseStockApi, type StockApi } from './stock/api.ts'
 import { StockProvider } from './stock/StockProvider.tsx'
@@ -54,6 +56,7 @@ interface RootProps {
   batchApi?: BatchApi
   shoppingApi?: ShoppingApi
   reminderApi?: ReminderApi
+  billApi?: BillApi
   backupApi?: BackupApi
   sync?: Sync
   drive?: DriveDeps | null
@@ -71,6 +74,7 @@ export function Root({
   batchApi,
   shoppingApi,
   reminderApi,
+  billApi,
   backupApi,
   sync = defaultSync ?? undefined,
   drive = defaultDrive,
@@ -84,6 +88,7 @@ export function Root({
   const batchesApi = useMemo(() => batchApi ?? (supabase ? supabaseBatchApi(supabase) : null), [batchApi])
   const shopApi = useMemo(() => shoppingApi ?? (supabase ? supabaseShoppingApi(supabase) : null), [shoppingApi])
   const remindApi = useMemo(() => reminderApi ?? (supabase ? supabaseReminderApi(supabase) : null), [reminderApi])
+  const billsApi = useMemo(() => billApi ?? (supabase ? supabaseBillApi(supabase) : null), [billApi])
   const backup = useMemo(() => backupApi ?? (supabase ? supabaseBackupApi(supabase) : null), [backupApi])
   // Nothing from one person's session stays on the device after they log out.
   const onSignedOut = useCallback(async () => {
@@ -91,13 +96,13 @@ export function Root({
     drive?.tokens.forget()
     await sync?.db.clearAll()
   }, [sync, drive])
-  if (!auth || !api || !stock || !dishesApi || !mealsApi || !calApi || !batchesApi || !shopApi || !remindApi || !backup || !sync) return <NotConfigured />
+  if (!auth || !api || !stock || !dishesApi || !mealsApi || !calApi || !batchesApi || !shopApi || !remindApi || !billsApi || !backup || !sync) return <NotConfigured />
   return (
     <AuthProvider auth={auth} onSignedOut={onSignedOut}>
       <BackupApiContext.Provider value={backup}>
         <DriveDepsContext.Provider value={drive}>
           <PushDepsContext.Provider value={push}>
-          <AuthGate api={api} apis={{ stock, dishes: dishesApi, meals: mealsApi, calendar: calApi, batches: batchesApi, shopping: shopApi, reminders: remindApi }} sync={sync} />
+          <AuthGate api={api} apis={{ stock, dishes: dishesApi, meals: mealsApi, calendar: calApi, batches: batchesApi, shopping: shopApi, reminders: remindApi, bills: billsApi }} sync={sync} />
           </PushDepsContext.Provider>
         </DriveDepsContext.Provider>
       </BackupApiContext.Provider>
@@ -114,6 +119,7 @@ interface DataApis {
   batches: BatchApi
   shopping: ShoppingApi
   reminders: ReminderApi
+  bills: BillApi
 }
 
 function AuthGate({ api, apis, sync }: { api: HouseholdApi; apis: DataApis; sync: Sync }) {
@@ -152,7 +158,9 @@ function HouseholdGate({ apis }: { apis: DataApis }) {
             <BatchProvider api={apis.batches} householdId={snapshot.household.id} userId={snapshot.me.user_id}>
               <ShoppingProvider api={apis.shopping} householdId={snapshot.household.id} userId={snapshot.me.user_id}>
                 <ReminderProvider api={apis.reminders} householdId={snapshot.household.id} userId={snapshot.me.user_id}>
-                  <App />
+                  <BillProvider api={apis.bills} householdId={snapshot.household.id} userId={snapshot.me.user_id}>
+                    <App />
+                  </BillProvider>
                 </ReminderProvider>
               </ShoppingProvider>
             </BatchProvider>
