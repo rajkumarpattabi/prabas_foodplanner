@@ -34,9 +34,18 @@ export default defineConfig({
         ],
       },
       workbox: {
-        // Precache the app shell only. Workbox registers no runtime routes, so
-        // cross-origin requests (Supabase, Google sign-in, Drive) go straight to the network.
+        // Precache the app shell. The one runtime route is the bill reader's engine from
+        // jsDelivr (versioned files, so they never change), kept so scanning works offline
+        // after the first time; Tesseract keeps its language data itself. Every other
+        // cross-origin request (Supabase, Google sign-in, Drive) goes straight to the network.
         globPatterns: ['**/*.{js,css,html,svg,png,ico,woff2}'],
+        runtimeCaching: [
+          {
+            urlPattern: ({ url }) => url.origin === 'https://cdn.jsdelivr.net' && url.pathname.startsWith('/npm/tesseract'),
+            handler: 'CacheFirst',
+            options: { cacheName: 'bill-reader', expiration: { maxEntries: 20 }, cacheableResponse: { statuses: [0, 200] } },
+          },
+        ],
         navigateFallback: `${BASE}index.html`,
         cleanupOutdatedCaches: true,
         // Showing reminders, and opening the app when one is tapped (public/push-sw.js).
