@@ -34,9 +34,9 @@ export function fold(text: string): string {
   return s.replace(/\s+/g, ' ').trim()
 }
 
-/** Edit distance, stopping early once it exceeds `max`. */
-function withinEdits(a: string, b: string, max: number): boolean {
-  if (Math.abs(a.length - b.length) > max) return false
+/** Edit distance between two strings, or Infinity once it's more than `max` (stops early). */
+export function editDistance(a: string, b: string, max: number): number {
+  if (Math.abs(a.length - b.length) > max) return Infinity
   let prev = Array.from({ length: b.length + 1 }, (_, i) => i)
   for (let i = 1; i <= a.length; i++) {
     const cur = [i]
@@ -45,11 +45,13 @@ function withinEdits(a: string, b: string, max: number): boolean {
       cur[j] = Math.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1))
       rowMin = Math.min(rowMin, cur[j])
     }
-    if (rowMin > max) return false
+    if (rowMin > max) return Infinity
     prev = cur
   }
-  return prev[b.length] <= max
+  return prev[b.length] <= max ? prev[b.length] : Infinity
 }
+
+const withinEdits = (a: string, b: string, max: number) => editDistance(a, b, max) <= max
 
 /** How well one name matches the folded query: higher is better, 0 is no match. */
 function score(name: string, q: string): number {
