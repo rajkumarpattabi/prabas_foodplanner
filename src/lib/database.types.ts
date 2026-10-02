@@ -6,6 +6,7 @@ import type { Dish as DishInterface } from '../dishes/types.ts'
 import type { Leftover as LeftoverInterface, MealRecord as MealInterface } from '../plan/types.ts'
 import type { Batch as BatchInterface, BatchEvent as BatchEventInterface } from '../prepared/types.ts'
 import type { ShoppingItem as ShoppingItemInterface } from '../shop/types.ts'
+import type { Bill as BillInterface, BillAliasRow as BillAliasInterface } from '../bills/types.ts'
 import type { PushSubscriptionRow as PushInterface, Reminder as ReminderInterface, ReminderSettings as ReminderSettingsInterface } from '../reminders/types.ts'
 import type { Item as ItemInterface, StockEvent as StockEventInterface } from '../stock/types.ts'
 
@@ -17,6 +18,8 @@ type StockEvent = Plain<StockEventInterface>
 type Batch = Plain<BatchInterface>
 type BatchEvent = Plain<BatchEventInterface>
 type ShoppingItem = Plain<ShoppingItemInterface>
+type Bill = Plain<BillInterface>
+type BillAlias = Plain<BillAliasInterface>
 type Reminder = Plain<ReminderInterface>
 type ReminderSettings = Plain<ReminderSettingsInterface>
 type PushRow = Plain<PushInterface>
@@ -157,6 +160,18 @@ export type Database = {
         Row: PushRow
         Insert: never
         Update: never
+        Relationships: []
+      }
+      bills: {
+        Row: Bill
+        Insert: Partial<Bill> & Pick<Bill, 'id' | 'household_id'>
+        Update: never
+        Relationships: []
+      }
+      bill_aliases: {
+        Row: BillAlias
+        Insert: Partial<BillAlias> & Pick<BillAlias, 'id' | 'household_id' | 'raw' | 'item_id'>
+        Update: Partial<Pick<BillAlias, 'item_id'>>
         Relationships: []
       }
       shopping_items: {
