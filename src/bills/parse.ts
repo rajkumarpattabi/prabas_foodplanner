@@ -25,11 +25,12 @@ export interface ParsedBill {
 
 /** Unit words as they appear on bills, longest first so "kgs" wins over "g". */
 const UNITS: [RegExp, EntryUnit][] = [
-  [/^(kgs?|kilos?|kilograms?|கிலோ|கி\.?)$/, 'kg'],
+  // OCR often reads கி as தி, and "kg" as "kq".
+  [/^(kgs?|kq|kilos?|kilograms?|கிலோ|திலோ|கி\.?)$/, 'kg'],
   [/^(gms?|grams?|grm?s?|g|கிராம்|கி\.?ரா)$/, 'g'],
   [/^(ltrs?|litres?|liters?|lit|l|லி\.?|லிட்டர்)$/, 'l'],
   [/^(ml|மி\.?லி)$/, 'ml'],
-  [/^(pcs?|pieces?|nos?|no|numbers?|எண்|எண்ணம்)$/, 'piece'],
+  [/^(pcs?|pes|pc5|pieces?|nos?|no|numbers?|எண்|எண்ணம்)$/, 'piece'],
   [/^(bunch(es)?|kattu|கட்டு|கட்)$/, 'bunch'],
   [/^(pkts?|packets?|pack|பாக்கெட்)$/, 'packet'],
 ]
@@ -63,7 +64,13 @@ const hasLetters = (s: string) => /[a-zA-Z஀-௿]/.test(s)
 
 /** One line of a bill, or null for a blank one. */
 export function parseLine(input: string): BillLine | null {
-  const raw = input.replace(/\s+/g, ' ').trim()
+  // Zero-width joiners (OCR leaves them after Tamil words) would break matching, and a
+  // lone Tamil numeral is OCR reading a speck: bills use 0\u20139.
+  const raw = input
+    .replace(/[\u200b-\u200d\ufeff]/g, '')
+    .replace(/(^|\s)[\u0be6-\u0bef](?=\s|$)/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
   if (!raw) return null
   // Rupee signs and "Rs" go; "/-" after prices too.
   let s = raw.replace(/₹|\brs\.?|\binr\b|\/-/gi, ' ')
@@ -138,5 +145,7 @@ export function parseBill(text: string): ParsedBill {
     .slice(start)
     .map(parseLine)
     .filter((l): l is BillLine => l !== null)
-  return { vendor, lines }
+  // Before the first line with a price: the shop's address and the like, not items.
+  const firstPriced = lines.findIndex((l) => !l.other && l.price !== null)
+  return { vendor, lines: lines.map((l, i) => (i < firstPriced && !l.other && l.price === null && l.quantity === null ? { ...l, other: true } : l)) }
 }

@@ -77,6 +77,28 @@ describe('reading a bill', () => {
       ['Onion 30', false],
     ])
   })
+
+  // Seen when Tesseract read test bills in the browser.
+  test('common OCR misreads: units, joiners after Tamil words, stray Tamil numerals', () => {
+    expect(parseLine('Coconut 2 pes 60')).toMatchObject({ name: 'Coconut', quantity: 2, unit: 'piece', price: 60 })
+    expect(parseLine('Banana 6 pc5 30')).toMatchObject({ name: 'Banana', quantity: 6, unit: 'piece' })
+    expect(parseLine('Onion 2 kq 70')).toMatchObject({ name: 'Onion', quantity: 2, unit: 'kg' })
+    expect(parseLine('தக்காளி 1 திலோ 40')).toMatchObject({ name: 'தக்காளி', quantity: 1, unit: 'kg', price: 40 })
+    expect(parseLine('வெங்காயம்‌ 2 கிலோ 70')).toMatchObject({ name: 'வெங்காயம்', quantity: 2, unit: 'kg' })
+    expect(parseLine('Tomato ௭ 1kg 40')).toMatchObject({ name: 'Tomato', quantity: 1, unit: 'kg', price: 40 })
+  })
+
+  test("the shop's address, above the first priced line, is set aside", () => {
+    const bill = parseBill('Murugan Vegetables\nT.Nagar, Chennai\nTomato 1kg 40\nCurry leaves\nThank you')
+    expect(bill.vendor).toBe('Murugan Vegetables')
+    expect(bill.lines.map((l) => [l.raw, l.other])).toEqual([
+      ['T.Nagar, Chennai', true],
+      ['Tomato 1kg 40', false],
+      // Below the items, a line with no price is still an item (curry leaves are often free).
+      ['Curry leaves', false],
+      ['Thank you', true],
+    ])
+  })
 })
 
 describe('matching a name', () => {
