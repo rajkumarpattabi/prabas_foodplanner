@@ -117,5 +117,10 @@ Colourful but calm. Colour always carries meaning. Never rely on colour alone; p
       15 minutes by pg_cron, sends what's due; per-person kinds, evening time and quiet hours; turn on per
       phone, send a test, iPhone Home Screen note. Migrations 0014–0015 applied; setup in
       docs/REMINDERS_SETUP.md. Tested on both phones.)
-- [ ] Batch 9: Nutrition
+- [x] Batch 9: Nutrition (done 2026-10-02: seven food groups from cooked meals over 14 days (legumes
+      weighted highest), real gaps only after 10 meals over a week, nutrition weight live in scoring with veg
+      protein favoured on veg-only days, swap line on suggestion cards (kids' favourites first), at most two
+      Shop nudges with one-tap add and a dish idea, Plan summary card and Food balance screen. No migration.
+      Card and screen seen on the phones; gaps, swaps and nudges tested in code, to be seen once two weeks of
+      cooking are logged.)
 - [ ] Batch 10: Bill scanning
