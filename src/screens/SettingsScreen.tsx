@@ -96,6 +96,13 @@ export function SettingsScreen() {
           Log out
         </button>
       </Section>
+      <p className="mt-6 text-center text-xs text-ink-muted">
+        App icon from a photo by GeorgeAugustine,{' '}
+        <a href="https://commons.wikimedia.org/wiki/File:Indianfoodleaf.jpg" target="_blank" rel="noreferrer" className="underline">
+          CC BY 2.0
+        </a>
+        , background removed and cropped.
+      </p>
     </Screen>
   )
 }

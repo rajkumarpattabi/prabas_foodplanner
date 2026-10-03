@@ -78,9 +78,11 @@ Colourful but calm. Colour always carries meaning. Never rely on colour alone; p
 ## App identity
 
 - Full name: PRABAS Food Planner. Short name (home-screen label): PRABAS.
-- Icon: a single banana leaf set diagonally, with a clear central vein and an optional small
-  turmeric-yellow dot, on a solid cream or turmeric background. Keep it inside the central 80%
-  for Android maskable icons. Sizes: 180 (apple-touch-icon), 192, 512, and a 512 maskable.
+- Icon: a sadya on a banana leaf, from the photo "Indianfoodleaf.jpg" by GeorgeAugustine
+  (Wikimedia Commons, CC BY 2.0): background removed, tilted, on turmeric `#FAEEDA`. The credit
+  line at the bottom of Settings is required by the licence; keep it. Source: `public/icons/icon.svg`
+  (the photo embedded); `npm run icons` makes 180 (apple-touch-icon), 192, 512, and a 512 maskable
+  shrunk into Android's safe zone.
 
 ## Batch status
 
