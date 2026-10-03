@@ -164,7 +164,7 @@ where key = 'kambu_koozh';
 update private.dish_catalog set
   ingredients = '[{"item":"kadalai_ennai","quantity":40}]'::jsonb,
   uses = '[{"dish":"chapathi_maavu","quantity":1}]'::jsonb,
-  sides = array['veg_kurma', 'chana_masala', 'paruppu_kadaiyal', 'thakkali_thokku']::text[]
+  sides = array['veg_kurma', 'chana_masala', 'paruppu_kadaiyal', 'kadai_paneer', 'paneer_bhurji', 'thakkali_thokku']::text[]
 where key = 'chapathi';
 
 update private.dish_catalog set
