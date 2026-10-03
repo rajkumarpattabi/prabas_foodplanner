@@ -37,9 +37,9 @@ describe('the starter dish catalogue', () => {
     expect(byKey.get('elumichai_sadam')!.sides[0]).toBe('urulai_roast')
   })
 
-  test('every tiffin and rice main has a side to go with it (sweet pongal and pasta are eaten on their own)', () => {
+  test('every tiffin and rice main has a side to go with it (sweet pongal, pasta, noodles and sandwiches are eaten on their own)', () => {
     const alone = dishes.filter((d) => (d.type === 'tiffin' || d.type === 'variety_rice') && !d.sides.length).map((d) => d.key)
-    expect(alone).toEqual(['sakkarai_pongal', 'pasta'])
+    expect(alone).toEqual(['sakkarai_pongal', 'pasta', 'veg_noodles', 'sandwich'])
   })
 
   test('egg, meat and fish dishes are non-veg; the rest are veg', () => {

@@ -185,6 +185,9 @@ const TYPE_TITLES: Record<DishType, string> = {
   nonveg_fry: 'Non-veg fry',
   drink: 'Drink',
   snack: 'Snack',
+  sweet: 'Sweet',
+  juice: 'Juice and lassi',
+  salad_soup: 'Salad and soup',
   prepared: 'Made ahead',
 }
 

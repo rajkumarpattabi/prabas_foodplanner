@@ -3,7 +3,7 @@
 import type { Category, Item } from '../stock/types.ts'
 import type { DishType, Ingredient } from './types.ts'
 
-/** One simple icon per kind of dish (CLAUDE.md): the twelve types share six icons. */
+/** One simple icon per kind of dish (CLAUDE.md): the types share six icons. */
 export type IconGroup = 'tiffin' | 'rice' | 'kuzhambu' | 'poriyal' | 'nonveg' | 'drink'
 
 export const ICON_GROUP: Record<DishType, IconGroup> = {
@@ -19,6 +19,9 @@ export const ICON_GROUP: Record<DishType, IconGroup> = {
   nonveg_gravy: 'nonveg',
   nonveg_fry: 'nonveg',
   drink: 'drink',
+  sweet: 'drink',
+  juice: 'drink',
+  salad_soup: 'poriyal',
   prepared: 'tiffin',
 }
 

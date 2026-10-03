@@ -2,6 +2,7 @@ import { describe, expect, test } from 'vitest'
 import type { Dish } from '../dishes/types.ts'
 import type { Item } from '../stock/types.ts'
 import { alternativeSides, comboFor, comboFromMeal, combosFor, isMainFor, swapSide, usableLeftovers } from './combos.ts'
+import { isSideType } from '../dishes/rules.ts'
 import type { BatchState } from '../prepared/batchState.ts'
 import type { ReadyPrepared } from '../prepared/ready.ts'
 import { cookEvents, cookLines, dishNames, preparedEvents, preparedLines } from './cook.ts'
@@ -201,6 +202,14 @@ describe('combos', () => {
     const mains = (m: Parameters<typeof isMainFor>[1]) => dishes.filter((d) => isMainFor(d, m)).map((d) => d.id)
     expect(mains('breakfast')).toEqual(['pongal', 'idli', 'ragi_koozh'])
     expect(mains('lunch')).toEqual(['vatha_kuzhambu', 'sadam', 'curd_rice'])
+  })
+
+  test('sweets, juices, salads and soups stay in the library: never a meal, never a side', () => {
+    for (const type of ['sweet', 'juice', 'salad_soup'] as const) {
+      const d = dish(`a_${type}`, { type, meals: ['breakfast', 'lunch', 'dinner'] })
+      for (const meal of ['breakfast', 'lunch', 'dinner'] as const) expect(isMainFor(d, meal), `${type} at ${meal}`).toBe(false)
+      expect(isSideType(type)).toBe(false)
+    }
   })
 
   test('a gravy is a main only at lunch or dinner, and comes with plain rice', () => {

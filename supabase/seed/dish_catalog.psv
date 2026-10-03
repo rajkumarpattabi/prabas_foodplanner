@@ -27,8 +27,8 @@ rava_dosai|ரவா தோசை|Rava dosa|tiffin|breakfast,dinner||thengai_chu
 wheat_dosai|கோதுமை தோசை|Wheat dosa|tiffin|dinner||thengai_chutney,kara_chutney|godhumai_mavu:400,arisi_mavu:50,periya_vengayam:100,pachai_milagai:10,kadalai_ennai:80|godhumai dosai,wheat dosa,gothumai dosai
 uthappam|ஊத்தப்பம்|Uthappam|tiffin|breakfast,dinner||sambar_tiffin,thengai_chutney|idli_arisi:500,ulutham_paruppu:125,periya_vengayam:150,thakkali:150,pachai_milagai:15,kadalai_ennai:100|uthappam,oothappam,uttapam,onion uthappam
 kuzhi_paniyaram|குழிப்பணியாரம்|Kuzhi paniyaram|tiffin|breakfast,dinner||thengai_chutney,kara_chutney|idli_arisi:400,ulutham_paruppu:100,chinna_vengayam:100,pachai_milagai:15,kadalai_ennai:80|kuzhi paniyaram,kuzhipaniyaram,paniyaram,kara paniyaram
-idiyappam|இடியாப்பம்|Idiyappam|tiffin|breakfast,dinner||veg_kurma,kara_chutney|arisi_mavu:500,thengai:0.5?|idiyappam,idiappam,string hoppers,sevai
-appam|ஆப்பம்|Appam|tiffin|breakfast,dinner||veg_kurma,muttai_kuzhambu|pacharisi:500,thengai:1,sakkarai:20,appa_soda:3|appam,aappam,palappam
+idiyappam|இடியாப்பம்|Idiyappam|tiffin|breakfast,dinner||veg_kurma,kara_chutney,thengai_paal,veg_stew|arisi_mavu:500,thengai:0.5?|idiyappam,idiappam,string hoppers,sevai
+appam|ஆப்பம்|Appam|tiffin|breakfast,dinner||veg_kurma,muttai_kuzhambu,veg_stew,thengai_paal|pacharisi:500,thengai:1,sakkarai:20,appa_soda:3|appam,aappam,palappam
 chapathi|சப்பாத்தி|Chapati|tiffin|dinner||veg_kurma,chana_masala,paruppu_kadaiyal|godhumai_mavu:500,kadalai_ennai:50|chapathi,chapati,chappathi,roti
 poori|பூரி|Poori|tiffin|breakfast||poori_masala,chana_masala|godhumai_mavu:500,sunflower_oil:250|poori,puri
 kichadi|ரவா கிச்சடி|Rava kichadi|tiffin|breakfast||thengai_chutney,sambar_tiffin|ravai:350,carrot:100,beans:100,pachai_pattani:75,thakkali:150,periya_vengayam:100,nei:40,kadalai_ennai:30|kichadi,kitchadi,rava khichdi,rava kichadi
@@ -121,7 +121,7 @@ kaalan_masala|காளான் மசாலா|Mushroom masala|kootu|lunch,din
 # ---- Chutney, thuvaiyal and raita ---------------------------------------------------
 thengai_chutney|தேங்காய் சட்னி|Coconut chutney|chutney|breakfast,dinner|||thengai:1,pottukadalai:40,pachai_milagai:15,inji:5,karuveppilai:0.25?,kadalai_ennai:10|coconut chutney,thengai chutney,thenga chutney,white chutney
 thakkali_chutney|தக்காளி சட்னி|Tomato chutney|chutney|breakfast,dinner|||thakkali:400,periya_vengayam:150,vara_milagai:6,poondu:10,kadalai_ennai:30|tomato chutney,thakkali chutney
-kara_chutney|கார சட்னி|Kara chutney|chutney|breakfast,dinner|||chinna_vengayam:200,thakkali:150,vara_milagai:8,poondu:10,puli:10,nallennai:30|kara chutney,kaara chutney,red chutney,onion chutney,vengaya chutney
+kara_chutney|கார சட்னி|Kara chutney|chutney|breakfast,dinner|||chinna_vengayam:200,thakkali:150,vara_milagai:8,poondu:10,puli:10,nallennai:30|kara chutney,kaara chutney,red chutney,tomato onion chutney,tomato and onion chutney
 inji_chutney|இஞ்சி சட்னி|Ginger chutney|chutney|breakfast,dinner|||inji:75,puli:25,vellam:30,vara_milagai:6,ulutham_paruppu:15,nallennai:20|inji chutney,ginger chutney,allam pachadi
 pudhina_chutney|புதினா சட்னி|Mint chutney|chutney|breakfast,dinner|greens||pudhina:1,kothamalli:0.5,thengai:0.25,pachai_milagai:10,ulutham_paruppu:15,puli:5,kadalai_ennai:10|pudina chutney,pudhina chutney,mint chutney
 kothamalli_chutney|கொத்தமல்லி சட்னி|Coriander chutney|chutney|breakfast,dinner|greens||kothamalli:2,thengai:0.25,pachai_milagai:10,ulutham_paruppu:15,puli:5|coriander chutney,kothamalli chutney,malli chutney
@@ -137,14 +137,14 @@ mutton_kuzhambu|ஆட்டுக்கறிக் குழம்பு|Mutto
 meen_kuzhambu|மீன் குழம்பு|Fish kuzhambu|nonveg_gravy|lunch|protein,fish|meen_varuval,beans_poriyal|ayila:750,puli:60,chinna_vengayam:150,thakkali:200,poondu:30,sambar_podi:30,vendhayam:5,thengai:0.25?,nallennai:75|meen kuzhambu,meen kulambu,fish curry,fish kuzhambu
 mathi_kuzhambu|மத்தி மீன் குழம்பு|Sardine kuzhambu|nonveg_gravy|lunch|protein,fish|carrot_poriyal|mathi:750,puli:60,chinna_vengayam:150,thakkali:200,poondu:30,sambar_podi:30,nallennai:60|mathi kuzhambu,mathi meen kuzhambu,sardine curry,chaala curry
 karuvadu_kuzhambu|கருவாட்டுக் குழம்பு|Karuvadu kuzhambu|nonveg_gravy|lunch|protein,fish|milagu_rasam|karuvadu:150,kathirikkai:250,murungakkai:2?,puli:60,chinna_vengayam:150,thakkali:150,poondu:30,sambar_podi:30,nallennai:60|karuvadu kuzhambu,karuvattu kuzhambu,dry fish kuzhambu,karuvadu kulambu
-muttai_kuzhambu|முட்டைக் குழம்பு|Egg kuzhambu|nonveg_gravy|lunch,dinner|protein|beans_poriyal|muttai:8,periya_vengayam:200,thakkali:200,thengai:0.25,inji:10,poondu:10,milagai_thool:10,malli_thool:15,kadalai_ennai:50|muttai kuzhambu,muttai kulambu,egg kuzhambu,egg curry,egg masala
+muttai_kuzhambu|முட்டைக் குழம்பு|Egg kuzhambu|nonveg_gravy|lunch,dinner|protein|beans_poriyal|muttai:8,periya_vengayam:200,thakkali:200,thengai:0.25,inji:10,poondu:10,milagai_thool:10,malli_thool:15,kadalai_ennai:50|muttai kuzhambu,muttai kulambu,egg kuzhambu,egg curry
 
 # ---- Non-veg fry ----------------------------------------------------------------------
 chicken_varuval|கோழி வறுவல்|Chicken fry|nonveg_fry|lunch,dinner|protein||kozhi:1000,periya_vengayam:150,inji:20,poondu:20,milagai_thool:15,milagu:10,kadalai_ennai:80,karuveppilai:0.5|chicken fry,kozhi varuval,pepper chicken,chicken varuval
-mutton_sukka|மட்டன் சுக்கா|Mutton sukka|nonveg_fry|lunch|protein||aattukari:1000,chinna_vengayam:200,milagu:15,sombu:5,inji:25,poondu:25,thengai:0.25?,kadalai_ennai:60,karuveppilai:0.5|mutton sukka,mutton chukka,mutton varuval,mutton fry
+mutton_sukka|மட்டன் சுக்கா|Mutton sukka|nonveg_fry|lunch|protein||aattukari:1000,chinna_vengayam:200,milagu:15,sombu:5,inji:25,poondu:25,thengai:0.25?,kadalai_ennai:60,karuveppilai:0.5|mutton sukka,mutton chukka
 kola_urundai|கோலா உருண்டை|Kola urundai|nonveg_fry|lunch|protein||kothu_kari:500,pottukadalai:50,thengai:0.25,chinna_vengayam:100,sombu:5,inji:15,poondu:15,kadalai_ennai:150|kola urundai,mutton kola,kola,mutton meatballs
 eeral_varuval|ஈரல் வறுவல்|Liver fry|nonveg_fry|lunch|protein||eeral:500,periya_vengayam:150,milagu:10,inji:15,poondu:15,kadalai_ennai:40|liver fry,eeral varuval,eeral fry,kaleeral
-meen_varuval|மீன் வறுவல்|Fish fry|nonveg_fry|lunch,dinner|protein,fish||vanjiram:750,milagai_thool:15,inji:15,poondu:15,elumichai:1,arisi_mavu:20,kadalai_ennai:100|fish fry,meen varuval,meen fry,vanjiram fry
+meen_varuval|மீன் வறுவல்|Fish fry|nonveg_fry|lunch,dinner|protein,fish||vanjiram:750,milagai_thool:15,inji:15,poondu:15,elumichai:1,arisi_mavu:20,kadalai_ennai:100|fish fry,meen varuval,meen fry
 nethili_varuval|நெத்திலி வறுவல்|Anchovy fry|nonveg_fry|lunch|protein,fish||nethili:500,milagai_thool:15,arisi_mavu:30,inji:10,poondu:10,kadalai_ennai:100|nethili fry,nethili varuval,anchovy fry,nethili meen fry
 eral_thokku|இறால் தொக்கு|Prawn thokku|nonveg_fry|lunch,dinner|protein,fish||eral:500,periya_vengayam:200,thakkali:200,inji:15,poondu:15,milagai_thool:15,kadalai_ennai:60|prawn thokku,eral thokku,prawn masala,eral masala,era thokku
 muttai_podimas|முட்டைப் பொடிமாஸ்|Egg podimas|nonveg_fry|breakfast,lunch,dinner|protein||muttai:8,periya_vengayam:150,pachai_milagai:10,milagu:5,kadalai_ennai:30|egg podimas,muttai podimas,muttai poriyal,egg bhurji,scrambled egg
@@ -154,7 +154,7 @@ omelette|ஆம்லெட்|Omelette|nonveg_fry|breakfast,dinner|protein||mut
 kozhukattai|பிடி கொழுக்கட்டை|Pidi kozhukattai|snack|breakfast,dinner||thengai_chutney,kara_chutney|arisi_mavu:400,thengai:0.5,kadalai_paruppu:50,pachai_milagai:10,kadalai_ennai:30|kozhukattai,pidi kozhukattai,kolukattai,kara kozhukattai
 medu_vadai|மெது வடை|Medu vada|snack|breakfast|protein,legume|sambar_tiffin,thengai_chutney|ulutham_paruppu:250,periya_vengayam:75,pachai_milagai:10,inji:10,kadalai_ennai:150|medu vada,medu vadai,ulundu vadai,uzhunthu vadai,vadai,vada
 sundal|கொண்டைக்கடலை சுண்டல்|Chana sundal|snack|breakfast|protein,legume,fibre||karuppu_kondakadalai:250,thengai:0.25,pachai_milagai:10,kadalai_ennai:15|sundal,chana sundal,kondakadalai sundal,kadalai sundal
-payasam|சேமியா பாயசம்|Semiya payasam|snack|lunch|||semiya:1,paal:1000,sakkarai:200,nei:30,munthiri:25,elakkai:3|payasam,semiya payasam,kheer,paayasam
+payasam|சேமியா பாயசம்|Semiya payasam|sweet|lunch|||semiya:1,paal:1000,sakkarai:200,nei:30,munthiri:25,elakkai:3|payasam,semiya payasam,kheer,paayasam
 
 # ---- Added October 2026 -------------------------------------------------------------
 pasta|பாஸ்தா|Pasta|tiffin|lunch,dinner|||pasta:500,thakkali:400,periya_vengayam:150,kudai_milagai:150,carrot:100,poondu:15,vennai:30,cheese:50?|pasta,masala pasta,macaroni
@@ -167,3 +167,37 @@ mutton_varuval|மட்டன் வறுவல்|Mutton varuval|nonveg_fry|l
 muttai_chutney|முட்டை சட்னி|Egg chutney|chutney|breakfast,dinner|protein||muttai:5,periya_vengayam:200,thakkali:200,pachai_milagai:10,milagai_thool:10,kadalai_ennai:40,karuveppilai:0.25|egg chutney,muttai chutney,mutta chutney
 thakkali_kurma|தக்காளி குருமா|Tomato kurma|kootu|breakfast,dinner|||thakkali:500,periya_vengayam:150,thengai:0.5,pottukadalai:20,sombu:5,inji:10,poondu:10,pachai_milagai:10,kadalai_ennai:40|thakkali kurma,tomato kurma,thakkali korma,tomato korma
 thakkali_sambar|தக்காளி சாம்பார்|Tomato sambar|sambar|breakfast,lunch|protein,legume|urulai_roast,beans_poriyal|thuvaram_paruppu:150,thakkali:400,chinna_vengayam:100,puli:15,sambar_podi:30,kadalai_ennai:30|thakkali sambar,tomato sambar
+
+# ---- Added October 2026, second list ---------------------------------------------------
+veg_momos|வெஜ் மோமோஸ்|Veg momos|snack|dinner|||maida:400,muttaikose:300,carrot:150,periya_vengayam:150,inji:10,poondu:10,kadalai_ennai:20|momos,veg momos,momo,dumplings
+veg_noodles|வெஜ் நூடுல்ஸ்|Veg noodles|tiffin|dinner|||noodles:2,muttaikose:200,carrot:150,kudai_milagai:150,periya_vengayam:100,vengaya_thaal:1?,poondu:10,kadalai_ennai:40|noodles,veg noodles,hakka noodles,chow mein
+sandwich|சாண்ட்விச்|Sandwich|tiffin|breakfast,dinner|||bread:2,urulaikizhangu:200,vellarikkai:150,thakkali:150,vennai:40,kothamalli:0.25?|sandwich,veg sandwich,bread sandwich
+masala_vadai|மசால் வடை|Masala vadai|snack|breakfast|protein,legume|thengai_chutney|kadalai_paruppu:300,chinna_vengayam:150,pachai_milagai:10,inji:10,sombu:5,karuveppilai:0.25,kothamalli:0.25?,kadalai_ennai:300|masala vadai,masal vadai,paruppu vadai,parippu vada
+soya_biryani|சோயா பிரியாணி|Soya biryani|variety_rice|lunch,dinner|protein|vengaya_raita|basmati:500,soya:150,periya_vengayam:200,thakkali:150,thayir:100,inji:20,poondu:20,pudhina:0.5,biryani_masala:15,nei:30,kadalai_ennai:40|soya biryani,meal maker biryani,soya chunks biryani
+vengaya_chutney|வெங்காயச் சட்னி|Onion chutney|chutney|breakfast,dinner|||chinna_vengayam:200,ulutham_paruppu:10,vara_milagai:6,puli:10,kadalai_ennai:30|onion chutney,vengaya chutney,chinna vengaya chutney
+karuveppilai_chutney|கறிவேப்பிலைச் சட்னி|Curry leaf chutney|chutney|breakfast,dinner|||karuveppilai:2,ulutham_paruppu:20,kadalai_paruppu:10,vara_milagai:4,puli:10,thengai:0.25,kadalai_ennai:15|karuveppilai chutney,curry leaf chutney,curry leaves chutney
+thengai_paal|தேங்காய்ப் பால்|Coconut milk|chutney|breakfast,dinner|||thengai:2,sakkarai:60,elakkai:2?|coconut milk,thengai paal,sweet coconut milk
+avitha_muttai|அவித்த முட்டை|Boiled egg|nonveg_fry|breakfast,lunch,dinner|protein||muttai:5|boiled egg,avicha muttai,avitha muttai,egg boiled
+veg_stew|காய்கறி ஸ்டூ|Vegetable stew|kootu|breakfast,dinner|||urulaikizhangu:200,carrot:150,beans:100,pachai_pattani:100,periya_vengayam:100,thengai:1,pachai_milagai:10,inji:10,thengai_ennai:30,karuveppilai:0.25|vegetable stew,veg stew,kerala stew,ishtu
+muttai_masala|முட்டை மசாலா|Egg masala|nonveg_gravy|lunch,dinner|protein|urulai_roast|muttai:8,periya_vengayam:250,thakkali:200,inji:15,poondu:15,milagai_thool:15,malli_thool:10,garam_masala:5,kadalai_ennai:50|egg masala,muttai masala,egg roast
+eral_kuzhambu|இறால் குழம்பு|Prawn kuzhambu|nonveg_gravy|lunch,dinner|protein,fish|urulai_roast|eral:500,chinna_vengayam:150,thakkali:200,puli:20,thengai:0.5,milagai_thool:15,malli_thool:15,kadalai_ennai:50,karuveppilai:0.25|prawn kuzhambu,eral kuzhambu,era kuzhambu,prawn curry
+eral_kurma|இறால் காய்கறி குருமா|Prawn vegetable kurma|nonveg_gravy|breakfast,dinner|protein,fish||eral:400,urulaikizhangu:150,carrot:100,beans:100,periya_vengayam:150,thakkali:150,thengai:0.5,pottukadalai:20,sombu:5,inji:10,poondu:10,kadalai_ennai:40|prawn kurma,prawn vegetable kurma,eral kurma,prawn salna
+nandu_thokku|நண்டுத் தொக்கு|Crab thokku|nonveg_fry|lunch,dinner|protein,fish||nandu:1000,chinna_vengayam:200,thakkali:200,inji:20,poondu:20,milagu:10,milagai_thool:15,kadalai_ennai:60,karuveppilai:0.5|crab thokku,nandu thokku,crab masala,nandu masala
+vanjiram_varuval|வஞ்சிரம் மீன் வறுவல்|Seer fish fry|nonveg_fry|lunch,dinner|protein,fish||vanjiram:750,milagai_thool:15,inji:10,poondu:10,elumichai:1,arisi_mavu:20,kadalai_ennai:100|vanjiram fry,vanjiram meen varuval,seer fish fry,king fish fry
+vavval_varuval|வவ்வால் மீன் வறுவல்|Pomfret fry|nonveg_fry|lunch,dinner|protein,fish||vavval:750,milagai_thool:15,inji:10,poondu:10,elumichai:1,arisi_mavu:20,kadalai_ennai:100|pomfret fry,vavval fry,vavval meen varuval,pomfret varuval
+rava_kesari|ரவா கேசரி|Rava kesari|sweet|lunch|||ravai:200,sakkarai:300,nei:100,munthiri:20,ular_thiratchai:15,elakkai:2|rava kesari,kesari,kesari bath
+paal_payasam|பால் பாயசம்|Paal payasam|sweet|lunch|||paal:1500,pacharisi:75,sakkarai:250,elakkai:2,munthiri:20,nei:20|paal payasam,pal payasam,rice kheer
+paruppu_payasam|பருப்பு பாயசம்|Paruppu payasam|sweet|lunch|protein,legume||pasi_paruppu:150,vellam:250,thengai:1,elakkai:2,munthiri:20,nei:30|paruppu payasam,moong dal payasam,pasi paruppu payasam
+semiya_javvarisi_payasam|சேமியா ஜவ்வரிசி பாயசம்|Semiya javvarisi payasam|sweet|lunch|||semiya:1,javvarisi:50,paal:1000,sakkarai:200,elakkai:2,munthiri:20,nei:20|semiya javvarisi payasam,semiya sago payasam,vermicelli sago payasam
+brownie|பிரவுனி|Brownie (eggless)|sweet|dinner|||maida:150,cocoa:50,sakkarai:200,vennai:120,thayir:120|brownie,eggless brownie,chocolate brownie
+tiramisu|டிராமிசு|Tiramisu (eggless)|sweet|dinner|||biscuit:2,fresh_cream:400,kaapi_thool:15,cocoa:15,sakkarai:100|tiramisu,eggless tiramisu
+nellikai_juice|நெல்லிக்காய் ஜூஸ்|Amla juice|juice|breakfast|||nellikai:200,then:30?|amla juice,nellikai juice,gooseberry juice
+carrot_juice|கேரட் ஜூஸ்|Carrot juice|juice|breakfast|||carrot:750|carrot juice
+beetroot_juice|பீட்ரூட் ஜூஸ்|Beetroot juice|juice|breakfast|||beetroot:500,elumichai:1?|beetroot juice
+orange_juice|ஆரஞ்சு ஜூஸ்|Orange juice|juice|breakfast|||orange:10|orange juice
+mosambi_juice|சாத்துக்குடி ஜூஸ்|Mosambi juice|juice|breakfast|||sathukudi:10|mosambi juice,sathukudi juice,sweet lime juice
+watermelon_juice|தர்பூசணி ஜூஸ்|Watermelon juice|juice|lunch|||tharbusani:1500|watermelon juice,tharbusani juice
+abc_juice|ஏபிசி ஜூஸ்|ABC juice|juice|breakfast|||apple:2,beetroot:250,carrot:400|abc juice,apple beetroot carrot juice
+lassi|லஸ்ஸி|Lassi|juice|lunch|curd||thayir:1000,sakkarai:100|lassi,sweet lassi
+veg_salad|காய்கறி சாலட்|Veg salad|salad_soup|lunch,dinner|fibre||vellarikkai:250,carrot:150,thakkali:150,periya_vengayam:100,elumichai:1,milagu:2|veg salad,salad,vegetable salad,green salad
+veg_soup|காய்கறி சூப்|Vegetable soup|salad_soup|dinner|fibre||carrot:150,beans:100,muttaikose:150,pachai_pattani:50,periya_vengayam:100,poondu:10,milagu:3,vennai:20|soup,veg soup,vegetable soup,clear soup

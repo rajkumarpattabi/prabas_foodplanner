@@ -42,6 +42,9 @@ const SIDE_KIND: Record<DishType, string> = {
   variety_rice: 'rice',
   drink: 'drink',
   snack: 'snack',
+  sweet: 'sweet',
+  juice: 'juice',
+  salad_soup: 'salad',
   prepared: 'prepared',
 }
 

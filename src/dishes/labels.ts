@@ -14,7 +14,10 @@ export const TYPE_LABELS: Record<DishType, string> = {
   nonveg_gravy: 'Non-veg gravy',
   nonveg_fry: 'Non-veg fry',
   drink: 'Drink',
-  snack: 'Snack and sweet',
+  snack: 'Snack',
+  sweet: 'Sweet',
+  juice: 'Juice and lassi',
+  salad_soup: 'Salad and soup',
   prepared: 'Made ahead',
 }
 

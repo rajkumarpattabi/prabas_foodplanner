@@ -13,6 +13,10 @@ export const DISH_TYPES = [
   'nonveg_fry',
   'drink',
   'snack',
+  /** Library only, never suggested as a meal or a side: payasam, kesari, juices, salads. */
+  'sweet',
+  'juice',
+  'salad_soup',
   /** Made ahead and used by other dishes, never a meal on its own: batter, dough, paste. */
   'prepared',
 ] as const
