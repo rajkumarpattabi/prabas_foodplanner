@@ -25,10 +25,8 @@ on conflict (key) do update set
 
 select private.seed_household_items(id) from public.households;
 
--- The new dishes, and the catalogue rows of the dishes that changed.
+-- The new dishes.
 insert into private.dish_catalog (key, name_ta, name_en, aliases, type, meals, tags, ingredients, sides) values
-  ('chapathi', 'சப்பாத்தி', 'Chapati', array['chapathi', 'chapati', 'chappathi', 'roti']::text[], 'tiffin', array['dinner']::text[], array[]::text[], '[{"item":"godhumai_mavu","quantity":500},{"item":"kadalai_ennai","quantity":50}]'::jsonb, array['veg_kurma', 'chana_masala', 'paruppu_kadaiyal', 'kadai_paneer', 'paneer_bhurji']::text[]),
-  ('sambar_sadam', 'சாம்பார் சாதம்', 'Sambar rice', array['sambar sadam', 'sambar saadam']::text[], 'variety_rice', array['lunch']::text[], array['protein', 'legume']::text[], '[{"item":"pacharisi","quantity":350},{"item":"thuvaram_paruppu","quantity":150},{"item":"chinna_vengayam","quantity":150},{"item":"thakkali","quantity":150},{"item":"murungakkai","quantity":2,"optional":true},{"item":"puli","quantity":30},{"item":"sambar_podi","quantity":30},{"item":"nei","quantity":30}]'::jsonb, array['urulai_roast', 'vendakkai_poriyal']::text[]),
   ('bisibelebath', 'பிசிபேளாபாத்', 'Bisi bele bath', array['bisibelebath', 'bisi bele bath', 'bisibellebath', 'bisi bele bhath']::text[], 'variety_rice', array['lunch', 'dinner']::text[], array['protein', 'legume']::text[], '[{"item":"pacharisi","quantity":300},{"item":"thuvaram_paruppu","quantity":150},{"item":"carrot","quantity":100},{"item":"beans","quantity":100},{"item":"pachai_pattani","quantity":50},{"item":"urulaikizhangu","quantity":100},{"item":"chinna_vengayam","quantity":100},{"item":"thakkali","quantity":100},{"item":"puli","quantity":20},{"item":"sambar_podi","quantity":30},{"item":"nei","quantity":40},{"item":"munthiri","quantity":15,"optional":true}]'::jsonb, array['urulai_roast', 'vengaya_raita']::text[]),
   ('kadai_paneer', 'கடாய் பனீர்', 'Kadai paneer', array['kadai paneer', 'karahi paneer', 'kadai panner']::text[], 'kootu', array['dinner']::text[], array['protein']::text[], '[{"item":"paneer","quantity":400},{"item":"kudai_milagai","quantity":200},{"item":"periya_vengayam","quantity":150},{"item":"thakkali","quantity":250},{"item":"inji","quantity":10},{"item":"poondu","quantity":10},{"item":"malli","quantity":10},{"item":"vara_milagai","quantity":4},{"item":"garam_masala","quantity":5},{"item":"kadalai_ennai","quantity":40}]'::jsonb, array[]::text[]),
   ('paneer_bhurji', 'பனீர் புர்ஜி', 'Paneer bhurji', array['paneer bhurji', 'paneer burji', 'panner burji', 'paneer scramble']::text[], 'poriyal', array['breakfast', 'dinner']::text[], array['protein']::text[], '[{"item":"paneer","quantity":400},{"item":"periya_vengayam","quantity":150},{"item":"thakkali","quantity":150},{"item":"kudai_milagai","quantity":100},{"item":"pachai_milagai","quantity":10},{"item":"inji","quantity":10},{"item":"garam_masala","quantity":3},{"item":"kadalai_ennai","quantity":30},{"item":"kothamalli","quantity":0.25,"optional":true}]'::jsonb, array[]::text[]),
@@ -43,6 +41,14 @@ on conflict (key) do update set
   ingredients = excluded.ingredients, sides = excluded.sides;
 
 select private.seed_household_dishes(id) from public.households;
+
+-- The two dishes that changed, in the catalogue: only what changed, so chapati keeps what
+-- 0012 gave it (it uses dough, and has thokku as a side).
+update private.dish_catalog set aliases = array_remove(array_remove(aliases, 'bisibelebath'), 'bisi bele bath')
+where key = 'sambar_sadam';
+update private.dish_catalog set sides = sides || array(
+  select k from unnest(array['kadai_paneer', 'paneer_bhurji']::text[]) k where not k = any (sides))
+where key = 'chapathi';
 
 -- Bisi bele bath's names come off Sambar rice (only where they're still there).
 update public.dishes set aliases = array_remove(array_remove(aliases, 'bisibelebath'), 'bisi bele bath')
