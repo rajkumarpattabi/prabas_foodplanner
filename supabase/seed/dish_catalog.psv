@@ -140,7 +140,7 @@ karuvadu_kuzhambu|கருவாட்டுக் குழம்பு|Karuva
 muttai_kuzhambu|முட்டைக் குழம்பு|Egg kuzhambu|nonveg_gravy|lunch,dinner|protein|beans_poriyal|muttai:8,periya_vengayam:200,thakkali:200,thengai:0.25,inji:10,poondu:10,milagai_thool:10,malli_thool:15,kadalai_ennai:50|muttai kuzhambu,muttai kulambu,egg kuzhambu,egg curry,egg masala
 
 # ---- Non-veg fry ----------------------------------------------------------------------
-chicken_varuval|கோழி வறுவல்|Chicken fry|nonveg_fry|lunch,dinner|protein||kozhi:1000,periya_vengayam:150,inji:20,poondu:20,milagai_thool:15,milagu:10,kadalai_ennai:80,karuveppilai:0.5|chicken fry,kozhi varuval,pepper chicken,chicken 65,chicken varuval
+chicken_varuval|கோழி வறுவல்|Chicken fry|nonveg_fry|lunch,dinner|protein||kozhi:1000,periya_vengayam:150,inji:20,poondu:20,milagai_thool:15,milagu:10,kadalai_ennai:80,karuveppilai:0.5|chicken fry,kozhi varuval,pepper chicken,chicken varuval
 mutton_sukka|மட்டன் சுக்கா|Mutton sukka|nonveg_fry|lunch|protein||aattukari:1000,chinna_vengayam:200,milagu:15,sombu:5,inji:25,poondu:25,thengai:0.25?,kadalai_ennai:60,karuveppilai:0.5|mutton sukka,mutton chukka,mutton varuval,mutton fry
 kola_urundai|கோலா உருண்டை|Kola urundai|nonveg_fry|lunch|protein||kothu_kari:500,pottukadalai:50,thengai:0.25,chinna_vengayam:100,sombu:5,inji:15,poondu:15,kadalai_ennai:150|kola urundai,mutton kola,kola,mutton meatballs
 eeral_varuval|ஈரல் வறுவல்|Liver fry|nonveg_fry|lunch|protein||eeral:500,periya_vengayam:150,milagu:10,inji:15,poondu:15,kadalai_ennai:40|liver fry,eeral varuval,eeral fry,kaleeral
@@ -155,3 +155,15 @@ kozhukattai|பிடி கொழுக்கட்டை|Pidi kozhukattai|snac
 medu_vadai|மெது வடை|Medu vada|snack|breakfast|protein,legume|sambar_tiffin,thengai_chutney|ulutham_paruppu:250,periya_vengayam:75,pachai_milagai:10,inji:10,kadalai_ennai:150|medu vada,medu vadai,ulundu vadai,uzhunthu vadai,vadai,vada
 sundal|கொண்டைக்கடலை சுண்டல்|Chana sundal|snack|breakfast|protein,legume,fibre||karuppu_kondakadalai:250,thengai:0.25,pachai_milagai:10,kadalai_ennai:15|sundal,chana sundal,kondakadalai sundal,kadalai sundal
 payasam|சேமியா பாயசம்|Semiya payasam|snack|lunch|||semiya:1,paal:1000,sakkarai:200,nei:30,munthiri:25,elakkai:3|payasam,semiya payasam,kheer,paayasam
+
+# ---- Added October 2026 -------------------------------------------------------------
+pasta|பாஸ்தா|Pasta|tiffin|lunch,dinner|||pasta:500,thakkali:400,periya_vengayam:150,kudai_milagai:150,carrot:100,poondu:15,vennai:30,cheese:50?|pasta,masala pasta,macaroni
+vellarikkai_pachadi|வெள்ளரிக்காய் பச்சடி|Cucumber pachadi|chutney|lunch|curd||thayir:400,vellarikkai:250,pachai_milagai:5,kothamalli:0.25?|cucumber pachadi,cucumber raita,vellarikai pachadi,vellarikkai thayir pachadi
+paneer_roll|பனீர் ரோல்|Paneer roll|snack|dinner|protein||paneer:400,godhumai_mavu:400,periya_vengayam:150,kudai_milagai:150,thakkali:100,thayir:100,garam_masala:5,kadalai_ennai:60|paneer roll,paneer wrap,paneer frankie,paneer kathi roll
+chicken_65|சிக்கன் 65|Chicken 65|nonveg_fry|lunch,dinner|protein||kozhi_boneless:1000,thayir:100,inji:20,poondu:20,milagai_thool:20,arisi_mavu:50,kadalai_ennai:300,karuveppilai:0.5|chicken 65,chicken sixty five,kozhi 65
+tandoori_chicken|தந்தூரி சிக்கன்|Tandoori chicken|nonveg_fry|dinner|protein||kozhi:1200,thayir:200,inji:20,poondu:20,milagai_thool:15,garam_masala:10,elumichai:1,vennai:30|tandoori chicken,tandoori,tandoori kozhi
+chicken_chukka|சிக்கன் சுக்கா|Chicken chukka|nonveg_fry|lunch,dinner|protein|milagu_rasam|kozhi:1000,chinna_vengayam:200,milagu:15,sombu:5,vara_milagai:6,inji:20,poondu:20,karuveppilai:0.5,kadalai_ennai:60|chicken chukka,chicken sukka,kozhi chukka,kozhi sukka
+mutton_varuval|மட்டன் வறுவல்|Mutton varuval|nonveg_fry|lunch|protein|milagu_rasam|aattukari:1000,chinna_vengayam:200,inji:20,poondu:20,milagai_thool:15,malli_thool:15,milagu:10,karuveppilai:0.5,kadalai_ennai:60|mutton varuval,mutton fry,aattukari varuval,attukari varuval
+muttai_chutney|முட்டை சட்னி|Egg chutney|chutney|breakfast,dinner|protein||muttai:5,periya_vengayam:200,thakkali:200,pachai_milagai:10,milagai_thool:10,kadalai_ennai:40,karuveppilai:0.25|egg chutney,muttai chutney,mutta chutney
+thakkali_kurma|தக்காளி குருமா|Tomato kurma|kootu|breakfast,dinner|||thakkali:500,periya_vengayam:150,thengai:0.5,pottukadalai:20,sombu:5,inji:10,poondu:10,pachai_milagai:10,kadalai_ennai:40|thakkali kurma,tomato kurma,thakkali korma,tomato korma
+thakkali_sambar|தக்காளி சாம்பார்|Tomato sambar|sambar|breakfast,lunch|protein,legume|urulai_roast,beans_poriyal|thuvaram_paruppu:150,thakkali:400,chinna_vengayam:100,puli:15,sambar_podi:30,kadalai_ennai:30|thakkali sambar,tomato sambar

@@ -37,16 +37,16 @@ describe('the starter dish catalogue', () => {
     expect(byKey.get('elumichai_sadam')!.sides[0]).toBe('urulai_roast')
   })
 
-  test('every tiffin and rice main has a side to go with it (sweets and plain drinks aside)', () => {
+  test('every tiffin and rice main has a side to go with it (sweet pongal and pasta are eaten on their own)', () => {
     const alone = dishes.filter((d) => (d.type === 'tiffin' || d.type === 'variety_rice') && !d.sides.length).map((d) => d.key)
-    expect(alone).toEqual(['sakkarai_pongal'])
+    expect(alone).toEqual(['sakkarai_pongal', 'pasta'])
   })
 
   test('egg, meat and fish dishes are non-veg; the rest are veg', () => {
-    for (const key of ['muttai_kuzhambu', 'omelette', 'muttai_podimas', 'chicken_biryani', 'meen_kuzhambu', 'nandu_rasam']) {
+    for (const key of ['muttai_kuzhambu', 'omelette', 'muttai_podimas', 'chicken_biryani', 'meen_kuzhambu', 'nandu_rasam', 'muttai_chutney', 'chicken_65']) {
       expect(veg(key), key).toBe(false)
     }
-    for (const key of ['ven_pongal', 'thayir_sadam', 'paneer_butter_masala', 'appam']) expect(veg(key), key).toBe(true)
+    for (const key of ['ven_pongal', 'thayir_sadam', 'paneer_butter_masala', 'appam', 'paneer_roll', 'thakkali_kurma']) expect(veg(key), key).toBe(true)
   })
 
   test('every meal has plenty of mains to choose from', () => {
