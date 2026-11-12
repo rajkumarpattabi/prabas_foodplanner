@@ -10,6 +10,9 @@ Full requirements, grouped into batches: `docs/REQUIREMENTS.md`
 Google Drive backup spec (ported from the MealFast app): `docs/DRIVE_BACKUP.md`
 Reference app with the working Drive backup code: `C:\Users\rajkumar_p\dev\mealfast` (see `app.js`, "Google Drive backup" section)
 
+Context carried over from earlier sessions (decisions, workflow, testing gotchas, where things stand):
+@docs/CLAUDE_CONTEXT.md
+
 ## How we work
 
 - Build **one batch at a time**, in the order in `docs/REQUIREMENTS.md`. Do not start work from a later batch unless asked.
